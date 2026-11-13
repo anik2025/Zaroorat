@@ -7,6 +7,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'database', 'data');
 const DATA_FILE = process.env.KOTAMITRA_DATA_FILE || path.join(DATA_DIR, 'businesses.json');
 const AREAS_FILE = path.join(ROOT, 'database', 'areas.json');
+const LOCATIONS_FILE = path.join(ROOT, 'database', 'locations.json');
 const PORT = Number(process.env.PORT || 4100);
 const DEV_ADMIN_EMAIL = 'admin@kotamitra.local';
 const DEV_ADMIN_PASSWORD = 'change-this-password';
@@ -33,9 +34,12 @@ function normalizePhone(value) {
   return PHONE_PATTERN.test(phone) ? phone : null;
 }
 function validationError(message) { const error = new Error(message); error.statusCode = 400; return error; }
-function loadKotaAreas() {
-  const areas = JSON.parse(fs.readFileSync(AREAS_FILE, 'utf8')).cities?.kota?.areas;
-  return new Set(Array.isArray(areas) ? areas : []);
+function loadLocations() { return JSON.parse(fs.readFileSync(LOCATIONS_FILE, 'utf8')); }
+function findLocation(input) {
+  const locations = loadLocations();
+  const region = (locations.regions || []).find(item => item.name === input.state);
+  const city = region?.cities?.find(item => item.name === input.city);
+  return { region, city };
 }
 function validateBusinessInput(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
@@ -45,10 +49,14 @@ function validateBusinessInput(input) {
   if (!ownerName || ownerName.length < 2 || ownerName.length > 100) throw validationError('Owner name must be 2 to 100 characters');
   const phone = normalizePhone(input.phone); if (!phone) throw validationError('Enter a valid Indian 10 digit mobile number');
   const whatsapp = input.whatsapp === undefined || input.whatsapp === '' ? '' : normalizePhone(input.whatsapp); if (input.whatsapp !== undefined && input.whatsapp !== '' && !whatsapp) throw validationError('WhatsApp number must be a valid Indian 10 digit mobile number');
-  if (!loadKotaAreas().has(input.area) || typeof input.area !== 'string') throw validationError('Select a valid Kota area');
+  const state = text(input.state); const city = text(input.city); const area = input.area === undefined || input.area === '' ? '' : text(input.area);
+  const { region, city: selectedCity } = findLocation({ state, city });
+  if (!region) throw validationError('Select a valid State / UT');
+  if (!selectedCity) throw validationError('Select a valid city for the selected State / UT');
+  if (area && !(selectedCity.areas || []).includes(area)) throw validationError('Select a valid area for the selected city');
   if (!address || address.length < 5 || address.length > 300) throw validationError('Address must be 5 to 300 characters');
   if (description === null || description.length > 1000) throw validationError('Description must be at most 1000 characters');
-  return { ...input, name, category, ownerName, phone, whatsapp, area: input.area, address, description };
+  return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description };
 }
 function validateEnquiryInput(input, data) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
@@ -86,6 +94,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, service: 'KotaMitra backend' });
     if (req.method === 'GET' && url.pathname === '/api/areas') return json(res, 200, JSON.parse(fs.readFileSync(AREAS_FILE, 'utf8')));
+    if (req.method === 'GET' && url.pathname === '/api/locations') return json(res, 200, loadLocations());
     if (req.method === 'GET' && url.pathname === '/api/businesses') {
       const status = url.searchParams.get('status') || 'approved';
       if (status === 'all' && !requireAdmin(req, res)) return;
