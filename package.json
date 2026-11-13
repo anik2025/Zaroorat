@@ -1,0 +1,14 @@
+{
+  "name": "kotamitra",
+  "private": true,
+  "version": "0.1.0",
+  "description": "KotaMitra local business platform",
+  "scripts": {
+    "backend": "node backend/server.js",
+    "check": "node --check backend/server.js",
+    "smoke-test": "node backend/smoke-test.js",
+    "credential-test": "node backend/credential-test.js",
+    "enquiry-test": "node backend/enquiry-test.js",
+    "validation-test": "node backend/validation-test.js"
+  }
+}

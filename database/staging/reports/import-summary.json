@@ -1,0 +1,20 @@
+{
+  "data_status": "TEST DATA",
+  "authoritative": false,
+  "source": "location-test-fixtures.json",
+  "accepted_count": 33,
+  "rejected_count": 2,
+  "ambiguous_count": 2,
+  "checks": [
+    "India-only six-digit PIN formats",
+    "duplicate source IDs",
+    "duplicate locations",
+    "state/district relationships",
+    "settlement/district relationships",
+    "locality relationships",
+    "post-office/PIN relationships",
+    "inactive/merged target/cycle constraints",
+    "ambiguous legacy Kota mappings",
+    "synthetic non-authoritative input"
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "record_type": "legacy_kota_mapping",
+    "record_id": "Unknown Kota Area",
+    "reason": "ambiguous legacy mapping remains unresolved",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "validation_case",
+    "record_id": "invalid-kota-unknown-ambiguous",
+    "reason": "explicitly unresolved test case",
+    "data_status": "TEST DATA"
+  }
+]

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="KotaMitra — Kota mein trusted local businesses aur services ek jagah." />
+  <title>KotaMitra — Kota ka har kaam, ek jagah</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#top" aria-label="KotaMitra home"><span class="brand-mark">K</span><span>Kota<span>Mitra</span></span></a>
+      <nav class="desktop-nav" aria-label="Main navigation"><a href="#categories">Categories</a><a href="#popular">Popular near you</a><a href="#business">List your business</a></nav>
+      <a class="ghost-btn" href="login.html">Login</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu"><a href="#categories">Categories</a><a href="#popular">Popular near you</a><a href="#business">List your business</a></div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="container hero-grid">
+        <div class="hero-copy"><div class="eyebrow"><span>●</span> Kota ke local businesses, ab ek jagah</div><h1>Kota mein jo chahiye,<br><em>yahin mil jayega.</em></h1><p>Nearby shops, services aur home businesses ko discover karein — trusted, local aur aapke area ke paas.</p>
+          <form class="search-box" id="searchForm"><div class="search-field"><span>⌕</span><input id="searchInput" type="search" placeholder="Tiffin, plumber, salon..." aria-label="Search businesses" /></div><div class="location-field"><span>⌖</span><select id="areaSelect" aria-label="Select area"><option value="all">Kota, Rajasthan — all areas</option></select></div><button type="submit">Search</button></form>
+          <div class="trust-row"><span><b>✓</b> Verified businesses</span><span><b>✓</b> Direct WhatsApp</span><span><b>✓</b> Kota focused</span></div>
+        </div>
+        <div class="hero-art"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="phone-card"><div class="phone-top"><span>9:41</span><span>●●●</span></div><div class="mini-title">Aaj aapko kya chahiye?</div><div class="mini-search">⌕ &nbsp; Search near you</div><div class="mini-cats"><span>🍱<small>Tiffin</small></span><span>🔧<small>Repair</small></span><span>🧺<small>Laundry</small></span><span>📚<small>Tutors</small></span></div><div class="mini-label">Popular near you</div><div class="mini-list"><div class="mini-item"><i class="food-icon">🍛</i><div><b>Ghar Ka Tiffin</b><small>Talwandi · ₹80 onwards</small></div><strong>4.8 ★</strong></div><div class="mini-item"><i class="tool-icon">🔧</i><div><b>QuickFix Repair</b><small>Vigyan Nagar · Open now</small></div><strong>4.7 ★</strong></div></div></div><div class="float-badge badge-top">✦ <b>2,500+</b><small>local businesses</small></div><div class="float-badge badge-bottom">✓ <b>100% local</b><small>made for Kota</small></div></div>
+      </div>
+    </section>
+
+    <section class="section categories" id="categories"><div class="container"><div class="section-head"><div><span class="section-kicker">EXPLORE KOTA</span><h2>What are you looking for?</h2></div><a href="#popular" class="text-link">View all categories <span>→</span></a></div><div class="category-grid" id="categoryGrid"></div></div></section>
+
+    <section class="section popular" id="popular"><div class="container"><div class="section-head"><div><span class="section-kicker">DISCOVER LOCAL</span><h2>Popular near you</h2><p class="muted">Kota ke logon ke favourite businesses</p></div><div class="filter-wrap"><button class="filter-btn active" data-filter="all">All</button><button class="filter-btn" data-filter="food">Food</button><button class="filter-btn" data-filter="services">Services</button><button class="filter-btn" data-filter="students">Students</button></div></div><div class="business-grid" id="businessGrid"></div><div class="empty-state" id="emptyState" hidden><div>⌕</div><h3>Business nahi mila</h3><p>Search ko thoda badal kar dobara try karein.</p></div></div></section>
+
+    <section class="join-section" id="business"><div class="container join-card"><div class="join-copy"><span class="section-kicker light">GROW WITH KOTAMITRA</span><h2>Aapka business,<br>ab Kota ke har customer tak.</h2><p>Shop ho, service ho ya ghar se chalne wala business — KotaMitra par free listing banayein aur naye customers tak pahunchiye.</p><div class="join-points"><span>✓ Free basic listing</span><span>✓ Direct customer enquiries</span><span>✓ Verified badge option</span></div><a class="primary-btn" id="joinBtn" href="../business-panel/index.html">Apna business add karein <span>→</span></a></div><div class="join-art"><div class="join-circle"><span>+</span><small>YOUR<br>BUSINESS</small></div><div class="join-tag tag-one">🍱 Home tiffin</div><div class="join-tag tag-two">✂️ Salon</div><div class="join-tag tag-three">🔧 Repair</div></div></div></section>
+  </main>
+
+  <footer><div class="container footer-main"><div><a class="brand footer-brand" href="#top"><span class="brand-mark">K</span><span>Kota<span>Mitra</span></span></a><p>Kota ka har kaam, ek jagah.</p></div><div class="footer-links"><div><b>Explore</b><a href="#categories">Categories</a><a href="#popular">Popular businesses</a><a href="#business">Add your business</a></div><div><b>Company</b><a href="#">About us</a><a href="#">Contact</a><a href="#">Privacy policy</a></div></div></div><div class="container footer-bottom"><span>© 2026 KotaMitra. Made with ♥ in Kota.</span><span>Built for Kota, Rajasthan</span></div></footer>
+  <div class="modal-backdrop" id="modalBackdrop" hidden><div class="modal"><button class="modal-close" id="modalClose">×</button><div class="modal-icon">✦</div><h2 id="modalTitle">Coming soon</h2><p id="modalText">Yeh feature jaldi live hoga. KotaMitra ke first launch ke updates ke liye jude rahiye.</p><button class="primary-btn" id="modalAction">Theek hai</button></div></div>
+  <script src="script.js"></script>
+</body>
+</html>

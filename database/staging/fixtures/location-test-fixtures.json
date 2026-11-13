@@ -1,0 +1,90 @@
+{
+  "fixture_metadata": {
+    "fixture_name": "KotaMitra synthetic nationwide location validation fixtures",
+    "data_status": "TEST DATA",
+    "authoritative": false,
+    "warning": "All PIN and post-office relationships in this file are synthetic test data and are not authoritative.",
+    "purpose": "Phase 2B Task 3 schema and importer validation only",
+    "source_files_inspected": ["database/staging/location-schema-draft.sql", "database/areas.json", "database/data/businesses.json"]
+  },
+  "countries": [
+    {"id":"00000000-0000-0000-0000-000000000001","iso2_code":"IN","iso3_code":"IND","name":"India","data_status":"TEST DATA"}
+  ],
+  "states": [
+    {"id":"00000000-0000-0000-0000-000000000101","country_id":"00000000-0000-0000-0000-000000000001","name":"Rajasthan","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000102","country_id":"00000000-0000-0000-0000-000000000001","name":"Maharashtra","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000103","country_id":"00000000-0000-0000-0000-000000000001","name":"Delhi","data_status":"TEST DATA"}
+  ],
+  "districts": [
+    {"id":"00000000-0000-0000-0000-000000000201","state_id":"00000000-0000-0000-0000-000000000101","name":"Kota","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000202","state_id":"00000000-0000-0000-0000-000000000101","name":"Jaipur","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000203","state_id":"00000000-0000-0000-0000-000000000102","name":"Mumbai Suburban","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000204","state_id":"00000000-0000-0000-0000-000000000103","name":"New Delhi","data_status":"TEST DATA"}
+  ],
+  "settlements": [
+    {"id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Kota","settlement_type":"city","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000302","district_id":"00000000-0000-0000-0000-000000000202","name":"Jaipur","settlement_type":"city","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000303","district_id":"00000000-0000-0000-0000-000000000203","name":"Mumbai","settlement_type":"city","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000304","district_id":"00000000-0000-0000-0000-000000000204","name":"New Delhi","settlement_type":"city","data_status":"TEST DATA"}
+  ],
+  "localities": [
+    {"id":"00000000-0000-0000-0000-000000000401","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Talwandi","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000402","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Vigyan Nagar","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000403","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Mahaveer Nagar I","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000404","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Borkheda Extension","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000405","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Other Kota area","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000406","settlement_id":"00000000-0000-0000-0000-000000000301","district_id":"00000000-0000-0000-0000-000000000201","name":"Kota City","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000408","settlement_id":"00000000-0000-0000-0000-000000000302","district_id":"00000000-0000-0000-0000-000000000202","name":"C-Scheme","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000409","settlement_id":"00000000-0000-0000-0000-000000000303","district_id":"00000000-0000-0000-0000-000000000203","name":"Andheri East","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000410","settlement_id":"00000000-0000-0000-0000-000000000304","district_id":"00000000-0000-0000-0000-000000000204","name":"Connaught Place","data_status":"TEST DATA"}
+  ],
+  "pincodes": [
+    {"id":"00000000-0000-0000-0000-000000000501","country_id":"00000000-0000-0000-0000-000000000001","code":"324005","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000502","country_id":"00000000-0000-0000-0000-000000000001","code":"324007","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000503","country_id":"00000000-0000-0000-0000-000000000001","code":"302001","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000504","country_id":"00000000-0000-0000-0000-000000000001","code":"400001","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000505","country_id":"00000000-0000-0000-0000-000000000001","code":"110001","data_status":"TEST DATA"}
+  ],
+  "post_offices": [
+    {"id":"00000000-0000-0000-0000-000000000601","pincode_id":"00000000-0000-0000-0000-000000000501","district_id":"00000000-0000-0000-0000-000000000201","name":"Synthetic Kota Central PO","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000602","pincode_id":"00000000-0000-0000-0000-000000000501","district_id":"00000000-0000-0000-0000-000000000201","name":"Synthetic Kota Market PO","data_status":"TEST DATA"},
+    {"id":"00000000-0000-0000-0000-000000000603","pincode_id":"00000000-0000-0000-0000-000000000504","district_id":"00000000-0000-0000-0000-000000000203","name":"Synthetic Mumbai East PO","data_status":"TEST DATA"}
+  ],
+  "locality_pincodes": [
+    {"locality_id":"00000000-0000-0000-0000-000000000401","pincode_id":"00000000-0000-0000-0000-000000000501","relationship_type":"serves","is_primary":true,"data_status":"TEST DATA"},
+    {"locality_id":"00000000-0000-0000-0000-000000000401","pincode_id":"00000000-0000-0000-0000-000000000502","relationship_type":"serves","is_primary":false,"data_status":"TEST DATA"},
+    {"locality_id":"00000000-0000-0000-0000-000000000402","pincode_id":"00000000-0000-0000-0000-000000000501","relationship_type":"serves","is_primary":true,"data_status":"TEST DATA"},
+    {"locality_id":"00000000-0000-0000-0000-000000000408","pincode_id":"00000000-0000-0000-0000-000000000503","relationship_type":"serves","is_primary":true,"data_status":"TEST DATA"},
+    {"locality_id":"00000000-0000-0000-0000-000000000409","pincode_id":"00000000-0000-0000-0000-000000000504","relationship_type":"serves","is_primary":true,"data_status":"TEST DATA"},
+    {"locality_id":"00000000-0000-0000-0000-000000000410","pincode_id":"00000000-0000-0000-0000-000000000505","relationship_type":"serves","is_primary":true,"data_status":"TEST DATA"}
+  ],
+  "validation_cases": [
+    {"case_id":"valid-kota-multi-po-one-pin","status":"valid","description":"One synthetic PIN has multiple synthetic post offices.","pincode_id":"00000000-0000-0000-0000-000000000501","post_office_ids":["00000000-0000-0000-0000-000000000601","00000000-0000-0000-0000-000000000602"],"data_status":"TEST DATA"},
+    {"case_id":"valid-talwandi-multi-pin","status":"valid","description":"One synthetic locality has multiple synthetic PIN codes.","locality_id":"00000000-0000-0000-0000-000000000401","pincode_ids":["00000000-0000-0000-0000-000000000501","00000000-0000-0000-0000-000000000502"],"data_status":"TEST DATA"},
+    {"case_id":"valid-mumbai-chain","status":"valid","description":"Mumbai Suburban -> Mumbai -> Andheri East -> synthetic PIN chain.","data_status":"TEST DATA"},
+    {"case_id":"invalid-locality-district-mismatch","status":"invalid","description":"Synthetic locality points to a settlement in Kota but a district in Jaipur; importer must reject.","locality_id":"00000000-0000-0000-0000-000000000401","district_id":"00000000-0000-0000-0000-000000000202","data_status":"TEST DATA"},
+    {"case_id":"invalid-post-office-pincode-mismatch","status":"invalid","description":"Synthetic post office is declared under the wrong PIN; importer must reject.","post_office_id":"00000000-0000-0000-0000-000000000601","pincode_id":"00000000-0000-0000-0000-000000000503","data_status":"TEST DATA"},
+    {"case_id":"invalid-kota-unknown-ambiguous","status":"unresolved","description":"Unknown Kota Area has no guessed hierarchy or PIN mapping.","locality_name":"Unknown Kota Area","mapping_status":"unresolved","data_status":"TEST DATA"}
+  ],
+  "legacy_kota_mapping_cases": [
+    {"legacy_area":"Talwandi","canonical_locality":"Talwandi","mapping_status":"test-only-name-preserved","pincode_ids":["00000000-0000-0000-0000-000000000501","00000000-0000-0000-0000-000000000502"],"data_status":"TEST DATA"},
+    {"legacy_area":"Vigyan Nagar","canonical_locality":"Vigyan Nagar","mapping_status":"test-only-name-preserved","data_status":"TEST DATA"},
+    {"legacy_area":"Mahaveer Nagar I","canonical_locality":"Mahaveer Nagar I","mapping_status":"test-only-name-preserved","data_status":"TEST DATA"},
+    {"legacy_area":"Borkheda Extension","canonical_locality":"Borkheda Extension","mapping_status":"test-only-name-preserved","data_status":"TEST DATA"},
+    {"legacy_area":"Other Kota area","canonical_locality":"Other Kota area","mapping_status":"test-only-name-preserved","data_status":"TEST DATA"},
+    {"legacy_area":"Kota City","canonical_locality":"Kota City","mapping_status":"test-only-name-preserved","data_status":"TEST DATA"},
+    {"legacy_area":"Unknown Kota Area","canonical_locality":null,"mapping_status":"unresolved-do-not-guess","data_status":"TEST DATA"}
+  ],
+  "copied_business_test_fixtures": [
+    {"original_business_uuid":"39b2a498-d0aa-467b-9028-d2a042bcce4e","name":"Test Kota Business","original_area":"Talwandi","fixture_area":"Talwandi","data_status":"TEST DATA","copy_note":"Copied for importer validation; original UUID and original area preserved. Not production data."}
+  ],
+  "copied_area_test_fixtures": [
+    {"original_area":"Talwandi","fixture_area":"Talwandi","data_status":"TEST DATA"},
+    {"original_area":"Vigyan Nagar","fixture_area":"Vigyan Nagar","data_status":"TEST DATA"},
+    {"original_area":"Mahaveer Nagar I","fixture_area":"Mahaveer Nagar I","data_status":"TEST DATA"},
+    {"original_area":"Borkheda Extension","fixture_area":"Borkheda Extension","data_status":"TEST DATA"},
+    {"original_area":"Other Kota area","fixture_area":"Other Kota area","data_status":"TEST DATA"},
+    {"original_area":"Kota City","fixture_area":"Kota City","data_status":"TEST DATA"},
+    {"original_area":"Unknown Kota Area","fixture_area":"Unknown Kota Area","data_status":"TEST DATA","mapping_status":"unresolved"}
+  ]
+}

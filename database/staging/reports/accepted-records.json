@@ -1,0 +1,200 @@
+[
+  {
+    "record_type": "pincodes",
+    "record_id": "00000000-0000-0000-0000-000000000501",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "pincodes",
+    "record_id": "00000000-0000-0000-0000-000000000502",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "pincodes",
+    "record_id": "00000000-0000-0000-0000-000000000503",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "pincodes",
+    "record_id": "00000000-0000-0000-0000-000000000504",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "pincodes",
+    "record_id": "00000000-0000-0000-0000-000000000505",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "states",
+    "record_id": "00000000-0000-0000-0000-000000000101",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "states",
+    "record_id": "00000000-0000-0000-0000-000000000102",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "states",
+    "record_id": "00000000-0000-0000-0000-000000000103",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "districts",
+    "record_id": "00000000-0000-0000-0000-000000000201",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "districts",
+    "record_id": "00000000-0000-0000-0000-000000000202",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "districts",
+    "record_id": "00000000-0000-0000-0000-000000000203",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "districts",
+    "record_id": "00000000-0000-0000-0000-000000000204",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "settlements",
+    "record_id": "00000000-0000-0000-0000-000000000301",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "settlements",
+    "record_id": "00000000-0000-0000-0000-000000000302",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "settlements",
+    "record_id": "00000000-0000-0000-0000-000000000303",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "settlements",
+    "record_id": "00000000-0000-0000-0000-000000000304",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000401",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000402",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000403",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000404",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000405",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000406",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000408",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000409",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "localities",
+    "record_id": "00000000-0000-0000-0000-000000000410",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "post_offices",
+    "record_id": "00000000-0000-0000-0000-000000000601",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "post_offices",
+    "record_id": "00000000-0000-0000-0000-000000000602",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "post_offices",
+    "record_id": "00000000-0000-0000-0000-000000000603",
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "locality_pincodes",
+    "record_id": null,
+    "reason": "valid synthetic record",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "legacy_kota_mapping",
+    "record_id": null,
+    "reason": "name preserved for test-only validation; not an authoritative mapping",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "validation_case",
+    "record_id": "valid-kota-multi-po-one-pin",
+    "reason": "expected valid case",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "validation_case",
+    "record_id": "valid-talwandi-multi-pin",
+    "reason": "expected valid case",
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "validation_case",
+    "record_id": "valid-mumbai-chain",
+    "reason": "expected valid case",
+    "data_status": "TEST DATA"
+  }
+]

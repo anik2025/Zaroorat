@@ -1,0 +1,16 @@
+[
+  {
+    "record_type": "validation_case",
+    "record_id": "invalid-locality-district-mismatch",
+    "reason": "expected invalid case: invalid-locality-district-mismatch",
+    "details": {},
+    "data_status": "TEST DATA"
+  },
+  {
+    "record_type": "validation_case",
+    "record_id": "invalid-post-office-pincode-mismatch",
+    "reason": "expected invalid case: invalid-post-office-pincode-mismatch",
+    "details": {},
+    "data_status": "TEST DATA"
+  }
+]
