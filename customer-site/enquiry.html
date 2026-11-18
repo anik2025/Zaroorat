@@ -1,1 +1,56 @@
-<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Send enquiry — ZAROORAT</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="login.css"></head><body><main class="auth-shell"><a class="brand" href="index.html"><span class="mark">K</span><span>ZARO<span>ORAT</span></span></a><section class="auth-card"><div class="auth-icon">✉</div><span class="eyebrow">CONTACT BUSINESS</span><h1>Send an<br><em>enquiry.</em></h1><p>Business owner aapko directly contact karega.</p><form id="enquiryForm"><label>Your name<input name="customerName" required maxlength="80" placeholder="Aapka naam"></label><label>Mobile number<div class="phone-input-wrap"><span class="prefix">+91</span><input name="customerPhone" required type="tel" inputmode="numeric" maxlength="10" placeholder="10 digit number"></div></label><label>Message<textarea name="message" required maxlength="500" rows="4" placeholder="Aapko kis service ki zarurat hai?"></textarea></label><input type="hidden" name="businessId" id="businessId"><button class="submit" type="submit">Send enquiry <span>→</span></button></form><div class="message" id="message"></div><small class="legal">Aapki details sirf is business enquiry ke liye use hongi.</small></section><a class="back" href="index.html">← Back to ZAROORAT</a></main><script src="enquiry.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Send Enquiry — ZAROORAT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <main class="auth-shell">
+    <a class="brand" href="index.html">
+        <svg class="brand-logo" width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="36" height="36" rx="12" fill="url(#z-grad)"/>
+            <path d="M10 12H26M26 12L10 24H26" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="z-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7657ff"/>
+                <stop offset="0.5" stop-color="#20b8ff"/>
+                <stop offset="1" stop-color="#00e5ff"/>
+              </linearGradient>
+            </defs>
+        </svg>
+        <span>ZARO<span>ORAT</span></span>
+    </a>
+    <section class="auth-card">
+      <div class="auth-icon">✉</div>
+      <span class="eyebrow">CONTACT BUSINESS</span>
+      <h1>Send an<br><em>enquiry.</em></h1>
+      <p>The business owner will contact you directly regarding your requirement.</p>
+      <form id="enquiryForm">
+        <label>Your Name
+            <input name="customerName" required maxlength="80" placeholder="Enter your full name">
+        </label>
+        <label>Mobile Number
+          <div class="phone-input-wrap">
+            <span class="prefix">+91</span>
+            <input name="customerPhone" required type="tel" inputmode="numeric" maxlength="10" placeholder="10 digit number">
+          </div>
+        </label>
+        <label>Message
+            <textarea name="message" required maxlength="500" rows="4" placeholder="What specific service or product do you need?"></textarea>
+        </label>
+        <input type="hidden" name="businessId" id="businessId">
+        <button class="submit" type="submit">Send Enquiry <span>→</span></button>
+      </form>
+      <div class="message" id="message"></div>
+      <small class="legal">Your details will be used only to process this business enquiry.</small>
+    </section>
+    <a class="back" href="index.html">← Back to Home</a>
+  </main>
+  <script src="enquiry.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
-const API = 'http://localhost:4100/api';
-const categories = [['🍱', 'Tiffin & Food', '120+ businesses'], ['🏠', 'PG & Hostel', '85+ listings'], ['🧺', 'Laundry', '40+ services'], ['🔧', 'Repairs', '95+ professionals'], ['📚', 'Tutors', '60+ tutors'], ['✂️', 'Salon & Beauty', '70+ businesses'], ['🖨️', 'Printing', '35+ shops'], ['🧁', 'Bakery & Cakes', '50+ businesses'], ['🧹', 'Cleaning', '25+ services'], ['🚚', 'Packers & Movers', '30+ services'], ['👕', 'Tailor & Boutique', '45+ businesses'], ['＋', 'View all', 'Explore more']];
+const API = '/api';
+const categories = [['🛍️', 'Shopping & Retail', ''], ['🏠', 'Property: Buy/Rent/Sell', ''], ['🏘️', 'Land & Plots', ''], ['🏡', 'Houses & Flats', ''], ['🏢', 'Commercial Property', ''], ['🍱', 'Tiffin & Food', ''], ['🛌', 'PG & Hostel', ''], ['🧺', 'Laundry', ''], ['🔧', 'Repairs', ''], ['📚', 'Tutors', ''], ['✂️', 'Salon & Beauty', ''], ['🖨️', 'Printing', ''], ['🧁', 'Bakery & Cakes', ''], ['🧹', 'Cleaning', ''], ['🚚', 'Packers & Movers', ''], ['👕', 'Tailor & Boutique', ''], ['✈️', 'Travel & Tourism', ''], ['🏥', 'Healthcare', ''], ['💼', 'Jobs', ''], ['🚜', 'Agriculture', ''], ['＋', 'View all', 'Explore more']];
 let businesses = [];
 let activeFilter = 'all';
 let locations = { regions: [] };
@@ -12,52 +12,304 @@ const areaSelect = document.getElementById('areaSelect');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 const sorted = values => [...values].sort((a, b) => a.localeCompare(b));
 
-function fillSelect(select, placeholder, values, disabled = false) {
-  select.innerHTML = `<option value="">${placeholder}</option>` + sorted(values).map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join('');
-  select.disabled = disabled;
-}
-function selectedRegion() { return locations.regions.find(region => region.name === stateSelect.value); }
-function selectedCity() { return selectedRegion()?.cities?.find(city => city.name === citySelect.value); }
-function resetCities() { fillSelect(citySelect, 'Select your City', [], true); fillSelect(areaSelect, 'Area / Locality (optional)', [], true); }
+function matchesCategory(business, targetCategory) {
+  if (!targetCategory) return true;
+  const t = targetCategory.toLowerCase();
+  const bCat = String(business.category || '').toLowerCase();
+  const bParent = String(business.parentCategory || '').toLowerCase();
+  const bSub = String(business.subcategory || '').toLowerCase();
+  const bName = String(business.name || '').toLowerCase();
 
+  if (bCat.includes(t) || t.includes(bCat) || bParent.includes(t) || t.includes(bParent) || bSub.includes(t) || t.includes(bSub) || bName.includes(t)) {
+    return true;
+  }
+
+  // Specific alias mappings
+  if (t.includes('property') && (bCat.includes('property') || bParent.includes('property') || bCat.includes('land') || bCat.includes('house') || bCat.includes('commercial') || bCat.includes('pg'))) return true;
+  if (t.includes('tiffin') && (bCat.includes('food') || bParent.includes('food') || bSub.includes('tiffin') || bSub.includes('bakery'))) return true;
+  if (t.includes('repair') && (bCat.includes('repair') || bParent.includes('repair') || bSub.includes('repair'))) return true;
+  if (t.includes('tutor') && (bCat.includes('tutor') || bParent.includes('education') || bSub.includes('tutor'))) return true;
+  if (t.includes('beauty') && (bCat.includes('beauty') || bParent.includes('beauty'))) return true;
+  if (t.includes('laundry') && (bCat.includes('laundry') || bCat.includes('tailor'))) return true;
+  if (t.includes('healthcare') && (bCat.includes('health') || bParent.includes('health'))) return true;
+  if (t.includes('printing') && (bCat.includes('printing') || bParent.includes('printing'))) return true;
+  if (t.includes('cleaning') && (bCat.includes('cleaning') || bSub.includes('cleaning'))) return true;
+  if (t.includes('packers') && (bCat.includes('packer') || bSub.includes('packer'))) return true;
+  if (t.includes('travel') && (bCat.includes('travel') || bParent.includes('travel'))) return true;
+  if (t.includes('agriculture') && (bCat.includes('agri') || bParent.includes('agri'))) return true;
+
+  return false;
+}
+
+function updateCategoryCounts() {
+  categories.forEach(cat => {
+    if (cat[1] === 'View all') return;
+    const count = businesses.filter(b => matchesCategory(b, cat[1])).length;
+    if (count > 0) {
+      cat[2] = `${count} verified listing${count !== 1 ? 's' : ''}`;
+    } else {
+      cat[2] = 'Available';
+    }
+  });
+  categoryGrid.innerHTML = categories.map((category, index) => `<div class="category-card ${index === 0 ? 'active' : ''}" data-category="${esc(category[1])}" role="button" tabindex="0"><div class="cat-icon">${category[0]}</div><b>${esc(category[1])}</b><small>${esc(category[2])}</small></div>`).join('');
+  init3DTilt();
+}
+
+class CustomDropdown {
+  constructor(config) {
+    this.container = document.getElementById(config.containerId);
+    this.trigger = document.getElementById(config.triggerId);
+    this.valueSpan = document.getElementById(config.valueId);
+    this.panel = document.getElementById(config.panelId);
+    this.searchInput = document.getElementById(config.searchId);
+    this.optionsContainer = document.getElementById(config.optionsId);
+    this.hiddenInput = document.getElementById(config.hiddenInputId);
+    this.placeholder = config.placeholder;
+    this.onSelect = config.onSelect || (() => {});
+    this.items = [];
+    this.selectedValue = '';
+    this.highlightIndex = -1;
+    this.initEvents();
+  }
+  setItems(items) {
+    this.items = items;
+    this.renderOptions(items);
+  }
+  setValue(val, label) {
+    this.selectedValue = val;
+    this.hiddenInput.value = val;
+    if (val) {
+      this.valueSpan.textContent = label || val;
+      this.valueSpan.classList.remove('is-placeholder');
+    } else {
+      this.valueSpan.textContent = this.placeholder;
+      this.valueSpan.classList.add('is-placeholder');
+    }
+  }
+  setDisabled(disabled) {
+    this.trigger.disabled = disabled;
+    if (disabled) this.close();
+  }
+  open() {
+    if (this.trigger.disabled) return;
+    document.querySelectorAll('.custom-dropdown').forEach(d => { if (d !== this.container) d.classList.remove('open'); });
+    document.querySelectorAll('.dropdown-panel').forEach(p => { if (p !== this.panel) p.hidden = true; });
+    this.container.classList.add('open');
+    this.panel.hidden = false;
+    this.trigger.setAttribute('aria-expanded', 'true');
+    this.searchInput.value = '';
+    this.renderOptions(this.items);
+    setTimeout(() => this.searchInput.focus(), 50);
+  }
+  close() {
+    this.container.classList.remove('open');
+    this.panel.hidden = true;
+    this.trigger.setAttribute('aria-expanded', 'false');
+    this.highlightIndex = -1;
+  }
+  toggle() { if (this.panel.hidden) this.open(); else this.close(); }
+  renderOptions(list) {
+    if (!list.length) { this.optionsContainer.innerHTML = `<div class="dropdown-empty">No matching options found</div>`; return; }
+    this.optionsContainer.innerHTML = list.map((item, idx) => {
+      const val = typeof item === 'string' ? item : item.value;
+      const label = typeof item === 'string' ? item : item.label;
+      const badge = typeof item === 'object' && item.badge ? `<span class="region-type-badge">${item.badge}</span>` : '';
+      const isSelected = val === this.selectedValue;
+      const isHighlighted = idx === this.highlightIndex;
+      return `<div class="dropdown-option ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}" data-value="${esc(val)}" data-label="${esc(label)}" role="option" aria-selected="${isSelected}">${esc(label)}${badge}</div>`;
+    }).join('');
+  }
+  initEvents() {
+    this.trigger.addEventListener('click', (e) => { e.stopPropagation(); this.toggle(); });
+    this.searchInput.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtered = this.items.filter(item => { const label = typeof item === 'string' ? item : item.label; return label.toLowerCase().includes(q); });
+      this.highlightIndex = -1;
+      this.renderOptions(filtered);
+    });
+    this.searchInput.addEventListener('keydown', (e) => {
+      const optionElements = Array.from(this.optionsContainer.querySelectorAll('.dropdown-option'));
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.highlightIndex = Math.min(this.highlightIndex + 1, optionElements.length - 1); this.updateHighlight(optionElements); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.highlightIndex = Math.max(this.highlightIndex - 1, 0); this.updateHighlight(optionElements); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (this.highlightIndex >= 0 && optionElements[this.highlightIndex]) { const el = optionElements[this.highlightIndex]; this.selectOption(el.dataset.value, el.dataset.label); } }
+      else if (e.key === 'Escape') { this.close(); this.trigger.focus(); }
+    });
+    this.optionsContainer.addEventListener('click', (e) => { const option = e.target.closest('.dropdown-option'); if (!option) return; this.selectOption(option.dataset.value, option.dataset.label); });
+  }
+  updateHighlight(optionElements) {
+    optionElements.forEach((el, idx) => {
+      if (idx === this.highlightIndex) { el.classList.add('highlighted'); el.scrollIntoView({ block: 'nearest' }); }
+      else el.classList.remove('highlighted');
+    });
+  }
+  selectOption(val, label) { this.setValue(val, label); this.close(); this.trigger.focus(); this.onSelect(val); }
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown')) {
+    document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.dropdown-panel').forEach(p => p.hidden = true);
+  }
+});
+
+let stateDropdown, cityDropdown, areaDropdown;
 async function loadLocations() {
   try {
-    const response = await fetch(`${API}/locations`);
+    const response = await fetch(`${API}/locations`, { headers: { 'x-demo-mode': 'true' } });
     if (!response.ok) throw new Error('Locations API error');
     locations = await response.json();
-    fillSelect(stateSelect, 'Select your State / UT', (locations.regions || []).map(region => region.name));
-  } catch (error) {
-    console.warn('Locations could not load', error);
-  }
+    stateDropdown.setItems((locations.regions || []).map(r => ({ value: r.name, label: r.name, badge: r.type })));
+  } catch (error) { console.warn('Locations could not load', error); }
 }
-stateSelect.addEventListener('change', () => {
-  const region = selectedRegion();
-  fillSelect(citySelect, 'Select your City', (region?.cities || []).map(city => city.name), !(region?.cities?.length));
-  fillSelect(areaSelect, 'Area / Locality (optional)', [], true);
-  search(false);
+
+document.addEventListener('DOMContentLoaded', () => {
+  stateDropdown = new CustomDropdown({ containerId: 'stateDropdown', triggerId: 'stateTrigger', valueId: 'stateValue', panelId: 'statePanel', searchId: 'stateSearch', optionsId: 'stateOptions', hiddenInputId: 'stateSelect', placeholder: 'Select State or UT', onSelect: (stateName) => {
+    const region = locations.regions.find(r => r.name === stateName);
+    const cities = region?.cities || [];
+    cityDropdown.setValue('', 'Select City');
+    areaDropdown.setValue('', 'Area (optional)');
+    cityDropdown.setItems(cities.map(c => ({ value: c.name, label: c.name })));
+    cityDropdown.setDisabled(cities.length === 0);
+    areaDropdown.setItems([]);
+    areaDropdown.setDisabled(true);
+    search(false);
+  }});
+  cityDropdown = new CustomDropdown({ containerId: 'cityDropdown', triggerId: 'cityTrigger', valueId: 'cityValue', panelId: 'cityPanel', searchId: 'citySearch', optionsId: 'cityOptions', hiddenInputId: 'citySelect', placeholder: 'Select City first', onSelect: (cityName) => {
+    const region = locations.regions.find(r => r.name === stateDropdown.selectedValue);
+    const city = region?.cities?.find(c => c.name === cityName);
+    const areas = city?.areas || [];
+    areaDropdown.setValue('', 'Area (optional)');
+    areaDropdown.setItems(areas.map(a => ({ value: a, label: a })));
+    areaDropdown.setDisabled(areas.length === 0);
+    search(false);
+  }});
+  areaDropdown = new CustomDropdown({ containerId: 'areaDropdown', triggerId: 'areaTrigger', valueId: 'areaValue', panelId: 'areaPanel', searchId: 'areaSearch', optionsId: 'areaOptions', hiddenInputId: 'areaSelect', placeholder: 'Area (optional)', onSelect: () => search(false) });
+  loadLocations();
 });
-citySelect.addEventListener('change', () => {
-  fillSelect(areaSelect, 'Area / Locality (optional)', selectedCity()?.areas || [], false);
-  search(false);
-});
-areaSelect.addEventListener('change', () => search(false));
-loadLocations();
 
 categoryGrid.innerHTML = categories.map((category, index) => `<div class="category-card ${index === 0 ? 'active' : ''}" data-category="${esc(category[1])}" role="button" tabindex="0"><div class="cat-icon">${category[0]}</div><b>${esc(category[1])}</b><small>${esc(category[2])}</small></div>`).join('');
-function selectCategory(card) { if (!card || card.dataset.category === 'View all') return; document.querySelectorAll('.category-card').forEach(item => item.classList.remove('active')); card.classList.add('active'); document.getElementById('searchInput').value = card.dataset.category; search(false); }
+function init3DTilt() {
+  const cards = document.querySelectorAll('.business-card, .category-card');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+      const xc = rect.width / 2; const yc = rect.height / 2;
+      const dx = (x - xc) / xc; const dy = (y - yc) / yc;
+      card.style.transform = `perspective(1000px) rotateX(${dy * -8}deg) rotateY(${dx * 8}deg) translateY(-6px)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)'; });
+  });
+}
+init3DTilt();
+let fullCategories = [];
+async function openCategoriesModal() {
+  const modal = document.getElementById('modalExplore');
+  const modalContent = document.getElementById('modalContent');
+  modal.classList.add('modal-wide');
+  backdrop.hidden = false;
+
+  modalContent.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+      <h2 style="margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;">Explore All Categories</h2>
+    </div>
+    <div style="text-align: center; padding: 20px;" id="modalLoading">Loading categories...</div>
+  `;
+
+  try {
+    if (!fullCategories.length) {
+      const response = await fetch(`${API}/categories`, { headers: { 'x-demo-mode': 'true' } });
+      if (response.ok) {
+        const data = await response.json();
+        fullCategories = data.categories;
+      }
+    }
+
+    if (fullCategories.length) {
+      modalContent.innerHTML = `
+        <div style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+          <h2 style="margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 24px; color: #fff;">Explore All Categories</h2>
+          <p style="margin: 5px 0 0; color: #a7afc5; font-size: 14px;">Select any category or subcategory to find trusted businesses immediately.</p>
+        </div>
+        <div class="modal-category-explorer" id="modalCategoryExplorer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+          ${fullCategories.map(cat => `
+            <div class="explore-cat-section" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; transition: all 0.2s;">
+              <div class="explore-cat-title" data-category="${esc(cat.name)}" style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer;">
+                <span style="font-size: 20px;">${esc(cat.icon)}</span>
+                <strong style="color: #fff; font-size: 15px; font-weight: 700; font-family: 'Plus Jakarta Sans';">${esc(cat.name)}</strong>
+              </div>
+              <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px; color: #a7afc5; line-height: 1.8;">
+                ${(cat.subcategories || []).map(sub => `
+                  <li class="explore-sub-item" data-subcategory="${esc(sub)}" style="cursor: pointer; padding: 2px 0; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#a7afc5'">• ${esc(sub)}</li>
+                `).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.getElementById('modalCategoryExplorer').addEventListener('click', (e) => {
+        const titleEl = e.target.closest('.explore-cat-title');
+        const subEl = e.target.closest('.explore-sub-item');
+        if (titleEl) {
+          selectCategoryFromModal(titleEl.dataset.category);
+        } else if (subEl) {
+          selectCategoryFromModal(subEl.dataset.subcategory);
+        }
+      });
+    } else {
+      modalContent.innerHTML = `<p>Error loading categories. Please try again.</p>`;
+    }
+  } catch (err) {
+    modalContent.innerHTML = `<p>Error loading categories. Please try again.</p>`;
+  }
+}
+
+function selectCategoryFromModal(categoryName) {
+  document.getElementById('searchInput').value = categoryName;
+  closeModal();
+  document.querySelectorAll('.category-card').forEach(item => item.classList.remove('active'));
+  search(true);
+}
+
+function selectCategory(card) {
+  if (!card) return;
+  const category = card.dataset.category;
+  if (category === 'View all') {
+    openCategoriesModal();
+  } else {
+    document.getElementById('searchInput').value = category;
+    document.querySelectorAll('.category-card').forEach(item => item.classList.remove('active'));
+    card.classList.add('active');
+    search(false);
+  }
+}
 categoryGrid.addEventListener('click', event => selectCategory(event.target.closest('.category-card')));
 categoryGrid.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectCategory(event.target.closest('.category-card')); } });
 
-function normalizeBusiness(business) { const category = String(business.category || '').toLowerCase(); return { ...business, type: category.includes('food') || category.includes('bakery') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'study' : 'service', icon: category.includes('food') ? '🍛' : category.includes('repair') ? '🔧' : category.includes('laundry') ? '🧺' : category.includes('pg') ? '🏠' : '✦', meta: business.description || business.category || '', rating: business.rating || 'New', reviews: business.reviewCount || '0', tag: business.isVerified ? 'Verified business' : 'New listing', filter: category.includes('food') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'students' : 'services' }; }
-function renderBusinesses(list = businesses) { businessGrid.innerHTML = list.map(business => { const businessId = encodeURIComponent(String(business.id || '')); const phone = String(business.whatsapp || '').replace(/\D/g, '').replace(/^0/, '91'); return `<article class="business-card"><div class="card-image ${esc(business.type)}"><span>${esc(business.icon)}</span><span class="verified">✓ ${esc(business.tag)}</span><button class="heart" type="button" aria-label="Save ${esc(business.name)}">♡</button></div><div class="card-body"><div class="card-title"><h3>${esc(business.name)}</h3><span class="rating">★ ${esc(business.rating)} (${esc(business.reviews)})</span></div><p class="card-meta">⌖ ${esc(business.area || business.city || business.state)} &nbsp; · &nbsp; ${esc(business.meta)}</p><div class="card-footer">${business.id ? `<a class="wa-link" href="enquiry.html?businessId=${businessId}">Enquire ↗</a>` : '<span class="wa-link muted-action">Enquire after approval</span>'}${phone ? `<a class="wa-link" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}</div></div></article>`; }).join(''); emptyState.hidden = list.length > 0; }
-async function loadBusinesses() { try { const response = await fetch(`${API}/businesses`); if (!response.ok) throw new Error('Businesses API error'); const result = await response.json(); businesses = Array.isArray(result.businesses) ? result.businesses.map(normalizeBusiness) : []; } catch (error) { businesses = []; } renderBusinesses(); }
+function normalizeBusiness(business) { const category = String(business.category || '').toLowerCase(); return { ...business, type: category.includes('food') || category.includes('bakery') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'study' : 'service', icon: category.includes('food') ? '🍛' : category.includes('repair') ? '🔧' : category.includes('laundry') ? '🧺' : category.includes('pg') ? '🏠' : '✦', meta: business.description || business.category || '', rating: business.rating || 'New', reviews: business.reviewCount || '0', tag: business.isVerified ? 'Verified Business' : 'New Listing', filter: category.includes('food') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'students' : 'services' }; }
+function renderBusinesses(list = businesses) { businessGrid.innerHTML = list.map(business => { const businessId = encodeURIComponent(String(business.id || '')); const phone = String(business.whatsapp || '').replace(/\D/g, '').replace(/^0/, '91'); return `<article class="business-card"><div class="card-image ${esc(business.type)}"><span>${esc(business.icon)}</span><span class="verified">✓ ${esc(business.tag)}</span><button class="heart" type="button" aria-label="Save ${esc(business.name)}">♡</button></div><div class="card-body"><div class="card-title"><h3>${esc(business.name)}</h3><span class="rating">★ ${esc(business.rating)} (${esc(business.reviews)})</span></div><p class="card-meta">📍 ${esc(business.area || business.city || business.state)} &nbsp; · &nbsp; ${esc(business.meta)}</p><div class="card-footer">${business.id ? `<a class="wa-link" href="enquiry.html?businessId=${businessId}">Enquire ↗</a>` : '<span class="wa-link muted-action">Enquire after approval</span>'}${phone ? `<a class="wa-link" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}</div></div></article>`; }).join(''); emptyState.hidden = list.length > 0; init3DTilt(); }
+async function loadBusinesses() { try { const response = await fetch(`${API}/businesses?demo=true`, { headers: { 'x-demo-mode': 'true' } }); if (!response.ok) throw new Error('Businesses API error'); const result = await response.json(); businesses = Array.isArray(result.businesses) ? result.businesses.map(normalizeBusiness) : []; updateCategoryCounts(); } catch (error) { businesses = []; } renderBusinesses(); }
 loadBusinesses();
-function getFilteredBusinesses() { const query = document.getElementById('searchInput').value.toLowerCase().trim(); return businesses.filter(business => (!query || `${business.name} ${business.category || ''} ${business.meta} ${business.area || ''} ${business.city || ''} ${business.state || ''}`.toLowerCase().includes(query)) && (!stateSelect.value || business.state === stateSelect.value) && (!citySelect.value || business.city === citySelect.value) && (!areaSelect.value || business.area === areaSelect.value) && (activeFilter === 'all' || business.filter === activeFilter || business.type === activeFilter)); }
+function getFilteredBusinesses() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  return businesses.filter(business => {
+    const matchesQuery = !query || matchesCategory(business, query);
+    const matchesState = !stateSelect.value || business.state === stateSelect.value;
+    const matchesCity = !citySelect.value || business.city === citySelect.value;
+    const matchesArea = !areaSelect.value || business.area === areaSelect.value;
+    const matchesActiveFilter = activeFilter === 'all' || business.filter === activeFilter || business.type === activeFilter;
+    return matchesQuery && matchesState && matchesCity && matchesArea && matchesActiveFilter;
+  });
+}
 function search(scroll = true) { renderBusinesses(getFilteredBusinesses()); if (scroll) document.getElementById('popular').scrollIntoView({ behavior: 'smooth' }); }
 document.getElementById('searchForm').addEventListener('submit', event => { event.preventDefault(); search(); });
 document.querySelectorAll('.filter-btn').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach(item => item.classList.remove('active')); button.classList.add('active'); activeFilter = button.dataset.filter; search(false); }));
 const backdrop = document.getElementById('modalBackdrop');
-function closeModal() { backdrop.hidden = true; }
+function closeModal() {
+  backdrop.hidden = true;
+  const modalExplore = document.getElementById('modalExplore');
+  if (modalExplore) modalExplore.classList.remove('modal-wide');
+}
 document.getElementById('modalClose').onclick = closeModal;
 document.getElementById('modalAction').onclick = closeModal;
 backdrop.onclick = event => { if (event.target === backdrop) closeModal(); };

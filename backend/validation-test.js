@@ -16,7 +16,7 @@ async function request(route, options) {
   return { status: response.status, body: parsed };
 }
 const jsonOptions = value => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
-const validBusiness = { name: 'Validation Tiffin', category: 'Tiffin & Food', ownerName: 'Valid Owner', phone: '+91 9876543210', whatsapp: '9876543211', area: 'Talwandi', address: '12 Talwandi Main Road', description: 'Fresh meals for students' };
+const validBusiness = { name: 'Validation Tiffin', category: 'Tiffin & Food', ownerName: 'Valid Owner', phone: '+91 9876543210', whatsapp: '9876543211', state: 'Rajasthan', city: 'Kota', area: 'Talwandi', address: '12 Talwandi Main Road', description: 'Fresh meals for students' };
 async function expectStatus(label, route, options, expected) {
   const result = await request(route, options);
   if (result.status !== expected) throw new Error(`${label}: expected ${expected}, received ${result.status} (${result.body.error || 'no error'})`);

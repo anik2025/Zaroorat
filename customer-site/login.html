@@ -1,1 +1,51 @@
-<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login — ZAROORAT</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="login.css"></head><body><main class="auth-shell"><a class="brand" href="index.html"><span class="mark">K</span><span>ZARO<span>ORAT</span></span></a><section class="auth-card"><div class="auth-icon">✦</div><span class="eyebrow">WELCOME BACK</span><h1>ZAROORAT mein<br><em>login karein.</em></h1><p>Saved businesses, enquiries aur personalised local recommendations ke liye login karein.</p><form id="loginForm"><label>Mobile number<div class="phone-input-wrap"><span class="prefix">+91</span><input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 digit number" required></div></label><button class="submit" type="submit">Continue with OTP <span>→</span></button></form><div class="divider"><span>ya</span></div><button class="whatsapp" id="whatsappBtn" type="button">◉ WhatsApp se continue karein</button><div class="message" id="message"></div><small class="legal">Continue karke aap ZAROORAT ke Terms aur Privacy Policy se agree karte hain.</small></section><a class="back" href="index.html">← Back to ZAROORAT</a></main><script src="login.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login — ZAROORAT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <main class="auth-shell">
+    <a class="brand" href="index.html">
+        <svg class="brand-logo" width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="36" height="36" rx="12" fill="url(#z-grad)"/>
+            <path d="M10 12H26M26 12L10 24H26" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="z-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#7657ff"/>
+                <stop offset="0.5" stop-color="#20b8ff"/>
+                <stop offset="1" stop-color="#00e5ff"/>
+              </linearGradient>
+            </defs>
+        </svg>
+        <span>ZARO<span>ORAT</span></span>
+    </a>
+    <section class="auth-card">
+      <div class="auth-icon">✦</div>
+      <span class="eyebrow">WELCOME BACK</span>
+      <h1>Login to your<br><em>ZAROORAT account.</em></h1>
+      <p>Log in to access your saved businesses, track your enquiries, and get personalized local recommendations.</p>
+      <form id="loginForm">
+        <label>Mobile Number
+          <div class="phone-input-wrap">
+            <span class="prefix">+91</span>
+            <input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10 digit number" required>
+          </div>
+        </label>
+        <button class="submit" type="submit">Continue with OTP <span>→</span></button>
+      </form>
+      <div class="divider"><span>or</span></div>
+      <button class="whatsapp" id="whatsappBtn" type="button">◉ Continue with WhatsApp</button>
+      <div class="message" id="message"></div>
+      <small class="legal">By continuing, you agree to ZAROORAT's Terms of Service and Privacy Policy.</small>
+    </section>
+    <a class="back" href="index.html">← Back to Home</a>
+  </main>
+  <script src="login.js"></script>
+</body>
+</html>

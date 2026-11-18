@@ -1,1 +1,45 @@
-<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Login — ZAROORAT</title><link rel="stylesheet" href="login.css"></head><body><main class="shell"><div class="brand"><span class="mark">K</span><span>ZARO<span>ORAT</span></span><small>ADMIN</small></div><section class="card"><div class="icon">🔐</div><span class="eyebrow">SECURE CONTROL CENTER</span><h1>Admin login</h1><p>Sirf authorised ZAROORAT admin yahan login karein.</p><form id="loginForm"><label>Email<input name="email" type="email" required placeholder="Admin email"></label><label>Password<input name="password" type="password" required placeholder="Password"></label><button type="submit">Login securely <span>→</span></button></form><div class="message" id="message"></div><small class="note">Development credentials environment variables se control hote hain.</small></section><a class="back" href="../customer-site/index.html">← Customer site</a></main><script src="login.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Login — ZAROORAT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="brand">
+      <svg class="brand-logo" width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="36" height="36" rx="12" fill="url(#z-grad-admin)"/>
+        <path d="M10 12H26M26 12L10 24H26" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="z-grad-admin" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#7657ff"/>
+            <stop offset="0.5" stop-color="#20b8ff"/>
+            <stop offset="1" stop-color="#00e5ff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span>ZARO<span>ORAT</span></span><small>ADMIN</small>
+    </div>
+    <section class="card">
+      <div class="icon">🔐</div>
+      <span class="eyebrow">SECURE CONTROL CENTER</span>
+      <h1>Admin Login</h1>
+      <p>Authorized ZAROORAT administrators only.</p>
+      <form id="loginForm">
+        <label>Email<input name="email" type="email" required placeholder="Admin email"></label>
+        <label>Password<input name="password" type="password" required placeholder="Password"></label>
+        <button class="submit" type="submit">Login Securely <span>→</span></button>
+      </form>
+      <div class="message" id="message"></div>
+      <small class="note">Development credentials are controlled via environment variables.</small>
+    </section>
+    <a class="back" href="../customer-site/index.html">← Customer Site</a>
+  </main>
+  <script src="login.js"></script>
+</body>
+</html>

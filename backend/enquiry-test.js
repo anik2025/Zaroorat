@@ -15,7 +15,7 @@ async function run() {
   const auth = { Authorization: `Bearer ${admin.body.accessToken}` };
   const businesses = [];
   for (const name of ['Alpha Tiffin', 'Beta Repair']) {
-    const result = await request('/api/businesses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, category: name.includes('Tiffin') ? 'Tiffin & Food' : 'Repairs', ownerName: 'Test Owner', phone: '9876543210', area: name.includes('Tiffin') ? 'Talwandi' : 'Vigyan Nagar', address: name.includes('Tiffin') ? '12 Talwandi Main Road' : '24 Vigyan Nagar Market' }) });
+    const result = await request('/api/businesses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, category: name.includes('Tiffin') ? 'Tiffin & Food' : 'Repairs', ownerName: 'Test Owner', phone: '9876543210', state: 'Rajasthan', city: 'Kota', area: name.includes('Tiffin') ? 'Talwandi' : 'Vigyan Nagar', address: name.includes('Tiffin') ? '12 Talwandi Main Road' : '24 Vigyan Nagar Market' }) });
     businesses.push(result.body.business);
   }
   for (const business of businesses) await request(`/api/businesses/${business.id}`, { method: 'PATCH', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'approved' }) });

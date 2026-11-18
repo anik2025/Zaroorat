@@ -137,6 +137,27 @@
 - Confirmed `database/data/businesses.json` checksum is unchanged: `f796dfc88c9fc528949d09361abb061b97230a27e1de6a8ce2e17a11cbb63c16`.
 - No database migration, SMS, Maps, Razorpay, Supabase, or deployment work was started.
 
+## 2026-11-18 — P0 Security & Session Persistence
+- Implemented persistent session storage using `database/data/sessions.json` for sessions and customer OTPs across server restarts.
+- Added automatic session and OTP loading on server startup, with automatic pruning of expired entries based on configured max-age (admin 24h, customer 7d).
+- Implemented IP-based rate limiting on sensitive API endpoints (`/api/auth/request-otp`, `/api/admin/login`, `/api/enquiries`) using a local memory-backed sliding window; returns 429 status code for spam prevention.
+- Added `backend/security-test.js` covering session persistence, logout invalidation, and rate limiting; added `npm run security-test` and updated `npm test` to include it.
+- Confirmed `database/data/businesses.json` remained protected and unchanged during testing.
+- All regression and security test suites (smoke, credential, enquiry, validation, security) passed: 100% success.
+- Documentation updated to reflect the new persistent auth store and rate-limiting infrastructure.
+- No new external runtime dependencies, databases, or cloud services introduced; entirely native Node.js implementation preserved.
+
+## 2026-11-18 — Phase 2: Business Owner Portal Implementation
+- Added server-side owner authentication, session validation (`requireOwner`), and strict server-side ownership checks on all owner-facing API endpoints.
+- Implemented `/api/owner/*` endpoints for listing businesses, updating business profiles (with strict field whitelisting to prevent escalation), and viewing/managing business-specific enquiries.
+- Business ownership validation is enforced on every request: client-supplied business IDs are ignored and owner access is strictly verified against `business.phone` linked to the authenticated session.
+- Customer privacy is enforced by limiting enquiries to businesses explicitly owned by the authenticated owner.
+- Added `backend/owner-security-test.js` covering ownership isolation, IDOR protection, privilege escalation prevention, and enquiry isolation.
+- All regression and new security test suites passed: 100% success.
+- Created local backup of business data before changes.
+- Existing business and enquiry data records remained intact.
+- No new external runtime dependencies, databases, or cloud services introduced; entirely native Node.js implementation preserved.
+
 ## Next checkpoint
 
-Keep the validation rules and isolated test coverage intact; wait for approval before starting another feature.
+Keep the owner security rules, ownership isolation, and test coverage intact; wait for approval before starting Phase 3.

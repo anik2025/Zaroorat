@@ -3,12 +3,26 @@
   "private": true,
   "version": "0.1.0",
   "description": "KotaMitra local business platform",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "start": "node backend/server.js",
     "backend": "node backend/server.js",
     "check": "node --check backend/server.js",
     "smoke-test": "node backend/smoke-test.js",
     "credential-test": "node backend/credential-test.js",
     "enquiry-test": "node backend/enquiry-test.js",
-    "validation-test": "node backend/validation-test.js"
+    "validation-test": "node backend/validation-test.js",
+    "security-test": "node backend/security-test.js",
+    "owner-security-test": "node backend/owner-security-test.js",
+    "test": "node --check backend/server.js && node backend/smoke-test.js && node backend/credential-test.js && node backend/enquiry-test.js && node backend/validation-test.js && node backend/security-test.js && node backend/owner-security-test.js",
+    "demo:generate": "node backend/generate-demo.js",
+    "demo:seed": "node backend/demo-seed-loader.js",
+    "demo:test": "node backend/demo-test.js",
+    "demo:clean": "node backend/demo-clean.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.1"
   }
 }

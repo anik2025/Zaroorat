@@ -1,18 +1,173 @@
 <!doctype html>
-<html lang="hi">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Business Panel — ZAROORAT</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar"><div class="brand"><span class="mark">K</span><span>ZARO<span>ORAT</span></span><small>BUSINESS</small></div><a href="../customer-site/index.html">← Customer site</a></header>
-  <main class="page"><section class="intro"><div><span class="eyebrow">GROW WITH ZAROORAT</span><h1>Apne business ko<br><em>poore Bharat tak pahunchayein.</em></h1><p>ZAROORAT par apna business add karke apne shehar ke customers tak aasani se pahunchiye.</p></div><div class="benefits"><div><b>01</b><span><strong>Free basic listing</strong><small>Start karne ke liye koi fee nahi</small></span></div><div><b>02</b><span><strong>Direct enquiries</strong><small>Customer se seedha contact</small></span></div><div><b>03</b><span><strong>Verified profile</strong><small>Trust aur visibility badhayein</small></span></div></div></section>
-  <section class="form-card"><div class="form-heading"><div><span class="eyebrow">STEP 1 OF 1</span><h2>Business details</h2><p>Basic information bhariye. Admin approval ke baad listing live hogi.</p></div><span class="required-note">* Required fields</span></div><form id="businessForm" novalidate>
-    <div class="form-grid"><label>Business name *<input name="name" required placeholder="Jaise: Ghar Ka Tiffin" maxlength="80"></label><label>Category *<select name="category" required><option value="">Select category</option><option>Tiffin & Food</option><option>PG & Hostel</option><option>Laundry</option><option>Repairs</option><option>Tutors</option><option>Salon & Beauty</option><option>Printing</option><option>Bakery & Cakes</option><option>Cleaning</option><option>Packers & Movers</option><option>Tailor & Boutique</option></select></label><label>Owner name *<input name="ownerName" required placeholder="Aapka naam" maxlength="80"></label><label>Mobile number *<div class="phone-input-wrap"><span class="prefix">+91</span><input name="phone" required type="tel" inputmode="numeric" placeholder="10 digit number" maxlength="10"></div></label><label>WhatsApp number<div class="phone-input-wrap"><span class="prefix">+91</span><input name="whatsapp" type="tel" inputmode="numeric" placeholder="Agar mobile se alag ho"></div></label><label>Area *<select name="area" required><option value="">Select area</option><option>Talwandi</option><option>Indra Vihar</option><option>Rajeev Gandhi Nagar</option><option>Vigyan Nagar</option><option>Mahaveer Nagar I</option><option>Mahaveer Nagar II</option><option>Mahaveer Nagar III</option><option>Mahaveer Nagar Extension</option><option>Jawahar Nagar</option><option>Landmark City</option><option>Kunhari</option><option>Kunhadi</option><option>Dadabari</option><option>Dadabari Extension</option><option>Borkheda</option><option>Rangbari</option><option>Rangbari Yojna</option><option>Thekda</option><option>Anantpura</option><option>Baran Road</option><option>Gumanpura</option><option>Keshavpura</option><option>Nayapura</option><option>R.K. Puram</option><option>Santoshi Nagar</option><option>Shastri Nagar</option><option>Shrinath Puram</option><option>Station Road</option><option>Udyog Nagar</option><option>Vallabh Nagar</option><option>Kota Junction</option><option>Other Kota area</option></select></label><label class="wide">Address *<input name="address" required placeholder="Shop/house number, landmark" maxlength="180"></label><label class="wide">Business description<textarea name="description" rows="4" maxlength="500" placeholder="Aap kya service/product dete hain? Price range ya timings bhi likh sakte hain."></textarea></label></div>
-    <div class="consent"><input id="consent" type="checkbox" required><label for="consent">Main confirm karta/karti hoon ki di gayi information sahi hai aur ZAROORAT mujhe listing ke sambandh mein contact kar sakta hai.</label></div><div class="form-actions"><span class="secure">🔒 Your details are used only for listing verification.</span><button class="submit-btn" type="submit">Submit for approval <span>→</span></button></div><div class="form-message" id="formMessage" role="status"></div>
-  </form></section></main><footer><span>© 2026 ZAROORAT</span><span>हर ज़रूरत, एक जगह।</span></footer><script src="script.js"></script>
-</body></html>
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-logo" width="30" height="30" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="36" height="36" rx="12" fill="url(#z-grad-bp)"/>
+        <path d="M10 12H26M26 12L10 24H26" stroke="white" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="z-grad-bp" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#7657ff"/>
+            <stop offset="0.5" stop-color="#20b8ff"/>
+            <stop offset="1" stop-color="#00e5ff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span>ZARO<span>ORAT</span></span><small>BUSINESS</small>
+    </div>
+    <nav class="nav-links" id="mainNav" hidden>
+      <button id="navDashboard" class="nav-btn active">Dashboard</button>
+      <button id="navRegister" class="nav-btn">Add Business</button>
+    </nav>
+    <a href="../customer-site/index.html">← Customer Site</a>
+  </header>
+  <main class="page">
+    <!-- Login Section -->
+    <section id="login-section" class="form-card">
+      <div class="form-heading">
+        <div>
+          <span class="eyebrow">OWNER ACCESS</span>
+          <h2>Business Owner Login</h2>
+          <p>Verify your phone number to access your business dashboard.</p>
+        </div>
+      </div>
+      <form id="loginForm" novalidate>
+        <label class="input-label">Mobile Number *
+          <div class="phone-input-wrap"><span class="prefix">+91</span><input name="phone" required type="tel" inputmode="numeric" placeholder="10 digit number" maxlength="10"></div>
+        </label>
+        <div id="otp-field" hidden>
+           <label class="input-label" style="margin-top:15px">Enter OTP *<input name="otp" type="text" placeholder="6-digit code"></label>
+        </div>
+        <div class="form-actions" style="margin-top:20px">
+          <button class="submit-btn" id="loginBtn" type="submit">Request OTP <span>→</span></button>
+        </div>
+        <div class="form-message" id="loginMessage" role="status"></div>
+      </form>
+    </section>
+
+    <!-- Dashboard Section -->
+    <section id="dashboard-section" class="form-card" hidden>
+      <div class="form-heading">
+        <h2 id="dashboard-title">My Dashboard</h2>
+        <button id="logoutBtn" class="submit-btn" style="background:var(--muted)">Logout</button>
+      </div>
+      <div id="dashboard-content">
+        <!-- Stats, My Businesses, Enquiries will be rendered here -->
+      </div>
+      <div class="form-message" id="dashboardMessage" role="status"></div>
+    </section>
+
+    <!-- Registration Section (Originally main content) -->
+    <section id="register-section" class="form-card" hidden>
+      <form id="businessForm" novalidate>
+        <div class="form-grid">
+          <label class="input-label">Business Name *<input name="name" required placeholder="e.g. Royal Tiffin & Caterers" maxlength="80"></label>
+
+          <label class="input-label">Category *
+            <div class="custom-dropdown" id="categoryDropdown">
+              <button type="button" class="dropdown-trigger" id="categoryTrigger" aria-expanded="false">
+                <span class="dropdown-value is-placeholder" id="categoryValue">Select category</span>
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="dropdown-panel" id="categoryPanel" hidden>
+                <div class="dropdown-search-wrap">
+                  <input type="text" class="dropdown-search-input" id="categorySearch" placeholder="Search category..." autocomplete="off">
+                </div>
+                <div class="dropdown-options" id="categoryOptions" role="listbox"></div>
+              </div>
+              <input type="hidden" name="category" id="categorySelect" required value="">
+            </div>
+          </label>
+
+          <label class="input-label">Owner Name *<input name="ownerName" required placeholder="Your full name" maxlength="80"></label>
+
+          <label class="input-label">Mobile Number *
+            <div class="phone-input-wrap"><span class="prefix">+91</span><input name="phone" required type="tel" inputmode="numeric" placeholder="10 digit number" maxlength="10"></div>
+          </label>
+
+          <label class="input-label">WhatsApp Number
+            <div class="phone-input-wrap"><span class="prefix">+91</span><input name="whatsapp" type="tel" inputmode="numeric" placeholder="If different from mobile" maxlength="10"></div>
+          </label>
+
+          <label class="input-label">State / UT *
+            <div class="custom-dropdown" id="stateDropdown">
+              <button type="button" class="dropdown-trigger" id="stateTrigger" aria-expanded="false">
+                <span class="dropdown-value is-placeholder" id="stateValue">Select State / UT</span>
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="dropdown-panel" id="statePanel" hidden>
+                <div class="dropdown-search-wrap">
+                  <input type="text" class="dropdown-search-input" id="stateSearch" placeholder="Search State / UT..." autocomplete="off">
+                </div>
+                <div class="dropdown-options" id="stateOptions" role="listbox"></div>
+              </div>
+              <input type="hidden" name="state" id="stateSelect" required value="">
+            </div>
+          </label>
+
+          <label class="input-label">City *
+            <div class="custom-dropdown" id="cityDropdown">
+              <button type="button" class="dropdown-trigger" id="cityTrigger" aria-expanded="false" disabled>
+                <span class="dropdown-value is-placeholder" id="cityValue">Select State first</span>
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="dropdown-panel" id="cityPanel" hidden>
+                <div class="dropdown-search-wrap">
+                  <input type="text" class="dropdown-search-input" id="citySearch" placeholder="Search City..." autocomplete="off">
+                </div>
+                <div class="dropdown-options" id="cityOptions" role="listbox"></div>
+              </div>
+              <input type="hidden" name="city" id="citySelect" required value="">
+            </div>
+          </label>
+
+          <label class="input-label">Area / Locality *
+            <div class="custom-dropdown" id="areaDropdown">
+              <button type="button" class="dropdown-trigger" id="areaTrigger" aria-expanded="false" disabled>
+                <span class="dropdown-value is-placeholder" id="areaValue">Select City first</span>
+                <span class="dropdown-chevron">▼</span>
+              </button>
+              <div class="dropdown-panel" id="areaPanel" hidden>
+                <div class="dropdown-search-wrap">
+                  <input type="text" class="dropdown-search-input" id="areaSearch" placeholder="Search Area..." autocomplete="off">
+                </div>
+                <div class="dropdown-options" id="areaOptions" role="listbox"></div>
+              </div>
+              <input type="hidden" name="area" id="areaSelect" required value="">
+            </div>
+          </label>
+
+          <label class="wide input-label">Full Address *<input name="address" required placeholder="Shop/house number, street, landmark" maxlength="180"></label>
+          <label class="wide input-label">Business Description
+            <textarea name="description" rows="4" maxlength="500" placeholder="What services or products do you offer? You can include price range or working hours."></textarea>
+          </label>
+        </div>
+        <div class="consent">
+          <input id="consent" type="checkbox" required>
+          <label for="consent">I confirm that the information provided is accurate and ZAROORAT may contact me regarding this listing.</label>
+        </div>
+        <div class="form-actions">
+          <span class="secure">🔒 Your details are used strictly for listing verification.</span>
+          <button class="submit-btn" type="submit">Submit for Approval <span>→</span></button>
+        </div>
+        <div class="form-message" id="formMessage" role="status"></div>
+      </form>
+    </section>
+  </main>
+  <footer>
+    <span>© 2026 ZAROORAT</span>
+    <span>Find everything you need, in one place.</span>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
