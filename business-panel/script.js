@@ -252,9 +252,30 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLocations();
   checkAuthAndRender();
 
+  const phoneInput = form.querySelector('input[name="phone"]');
+  const whatsappInput = form.querySelector('input[name="whatsapp"]');
+  const sameAsRegistered = document.getElementById('sameAsRegistered');
+
+  sameAsRegistered.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      whatsappInput.value = phoneInput.value;
+    } else {
+      whatsappInput.value = '';
+    }
+  });
+
+  phoneInput.addEventListener('input', () => {
+    if (sameAsRegistered.checked) {
+      whatsappInput.value = phoneInput.value;
+    }
+  });
+
+  whatsappInput.addEventListener('input', () => {
+    sameAsRegistered.checked = false;
+  });
+
   // Navigation handlers
   navDashboard.addEventListener('click', () => {
-    navDashboard.classList.add('active');
     navRegister.classList.remove('active');
     dashboardSection.hidden = false;
     registerSection.hidden = true;
@@ -432,37 +453,39 @@ function renderDashboard() {
   const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
 
   dashboardContent.innerHTML = `
-    <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:30px;">
-      <div class="stat-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;">
+    <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px;">
+      <div class="stat-card futuristic-card neon-border">
         <span class="eyebrow">My Listings</span>
         <h3 style="font-size:28px;margin:8px 0 0;color:var(--blue);">${totalBiz}</h3>
         <small style="color:var(--silver);">${approvedBiz} approved, ${pendingBiz} pending</small>
       </div>
-      <div class="stat-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;">
+      <div class="stat-card futuristic-card neon-border">
         <span class="eyebrow">Customer Enquiries</span>
         <h3 style="font-size:28px;margin:8px 0 0;color:var(--coral);">${totalEnq}</h3>
         <small style="color:var(--silver);">${newEnq} new enquiries</small>
       </div>
-      <div class="stat-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;">
+      <div class="stat-card futuristic-card neon-border">
         <span class="eyebrow">Account Phone</span>
         <h3 style="font-size:18px;margin:12px 0 0;color:#fff;">+91 ${esc(currentUserPhone)}</h3>
         <small style="color:var(--silver);">Verified Owner</small>
       </div>
     </div>
 
-    <div class="dashboard-block" style="margin-bottom:35px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+    <div class="dashboard-block futuristic-card neon-border" style="margin-bottom:35px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <h3 style="margin:0;font-size:20px;font-family:'Plus Jakarta Sans';">My Businesses</h3>
         <button class="submit-btn" id="addAnotherBizBtn" style="padding:10px 16px;font-size:12px;">+ Add Another Business</button>
       </div>
       ${ownerBusinesses.length === 0 ? `
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:30px;text-align:center;color:var(--silver);">
-          You haven't registered any businesses yet. Click "Add Another Business" above to register your first listing!
+        <div class="futuristic-card neon-border" style="padding:30px;text-align:center;">
+          <span style="font-size:40px;display:block;margin-bottom:15px;">🏢</span>
+          <p style="color:var(--silver);font-size:14px;">You haven't registered any businesses yet.</p>
+          <button class="submit-btn" id="addFirstBizBtn" style="margin-top:18px;padding:10px 18px;font-size:13px;">Register Your First Business →</button>
         </div>
       ` : `
         <div class="business-list" style="display:flex;flex-direction:column;gap:15px;">
           ${ownerBusinesses.map(b => `
-            <div class="biz-card" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
+            <div class="biz-card futuristic-card neon-border" style="padding:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
               <div style="flex:1;min-width:260px;">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                   <h4 style="margin:0;font-size:18px;color:#fff;">${esc(b.name)}</h4>
@@ -473,7 +496,7 @@ function renderDashboard() {
                 <p style="margin:0;font-size:12px;color:#d4daf0;">${esc(b.address)}</p>
               </div>
               <div style="display:flex;gap:10px;align-items:center;">
-                <button class="submit-btn edit-biz-btn" data-id="${esc(b.id)}" style="padding:8px 14px;font-size:12px;background:var(--deep);border:1px solid var(--violet);">Edit Profile</button>
+                <button class="submit-btn edit-biz-btn" data-id="${esc(b.id)}" style="padding:8px 14px;font-size:12px;background:var(--deep);border:1px solid var(--violet);color:#fff;">Edit Profile</button>
               </div>
             </div>
           `).join('')}
@@ -481,11 +504,12 @@ function renderDashboard() {
       `}
     </div>
 
-    <div class="dashboard-block">
+    <div class="dashboard-block futuristic-card neon-border">
       <h3 style="margin:0 0 15px;font-size:20px;font-family:'Plus Jakarta Sans';">Customer Enquiries</h3>
       ${ownerEnquiries.length === 0 ? `
-        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:30px;text-align:center;color:var(--silver);">
-          No enquiries received yet for your businesses. When customers reach out, their enquiries will appear here.
+        <div class="futuristic-card neon-border" style="padding:30px;text-align:center;">
+          <span style="font-size:40px;display:block;margin-bottom:15px;">💬</span>
+          <p style="color:var(--silver);font-size:14px;">No enquiries received yet for your businesses.</p>
         </div>
       ` : `
         <div class="enquiries-table-wrap" style="overflow-x:auto;">
