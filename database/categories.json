@@ -1,0 +1,237 @@
+{
+  "version": "2.0.0",
+  "categories": [
+    {
+      "id": "shopping-retail",
+      "name": "Shopping & Retail",
+      "icon": "🛍️",
+      "group": "shopping",
+      "description": "Marts, electronics, fashion, furniture, books & local retail stores",
+      "legacyAliases": ["Shopping & Retail"],
+      "subcategories": [
+        "Supermarkets & Marts",
+        "Electronics & Mobiles",
+        "Clothing & Fashion",
+        "Footwear & Accessories",
+        "Furniture & Home Decor",
+        "Stationery & Books",
+        "Jewellery & Gifts",
+        "Hardware & Tools"
+      ]
+    },
+    {
+      "id": "property",
+      "name": "Property & Real Estate",
+      "icon": "🏘️",
+      "group": "property",
+      "supportsProperty": true,
+      "transactionTypes": ["Buy", "Sell", "Rent"],
+      "description": "Buy, sell or rent land, plots, houses, flats, shops & commercial spaces",
+      "legacyAliases": [
+        "Property: Buy/Rent/Sell",
+        "Land & Plots",
+        "Houses & Flats",
+        "Commercial Property",
+        "PG & Hostel"
+      ],
+      "subcategories": [
+        "Land & Plots",
+        "Houses & Villas",
+        "Flats & Apartments",
+        "Shops & Showrooms",
+        "Commercial Property",
+        "PG & Hostel",
+        "Warehouse & Godown",
+        "Agricultural Land"
+      ]
+    },
+    {
+      "id": "food-dining",
+      "name": "Food & Restaurants",
+      "icon": "🍽️",
+      "group": "food",
+      "description": "Restaurants, cafes, tiffin mess, bakeries, sweets & catering services",
+      "legacyAliases": ["Tiffin & Food", "Bakery & Cakes"],
+      "subcategories": [
+        "Restaurants & Cafes",
+        "Tiffin & Food",
+        "Bakery & Cakes",
+        "Street Food & Snacks",
+        "Catering Services",
+        "Sweets & Dairy"
+      ]
+    },
+    {
+      "id": "grocery",
+      "name": "Grocery & Daily Needs",
+      "icon": "🛒",
+      "group": "food",
+      "description": "Kirana stores, fresh vegetables, fruits, dairy & daily essentials",
+      "legacyAliases": [],
+      "subcategories": [
+        "Kirana & General Stores",
+        "Fruits & Vegetables",
+        "Dairy & Milk Booths",
+        "Organic & Dry Fruits",
+        "Drinking Water Supply"
+      ]
+    },
+    {
+      "id": "healthcare",
+      "name": "Healthcare & Medical",
+      "icon": "🏥",
+      "group": "services",
+      "description": "Clinics, doctors, pharmacies, diagnostic labs, dental & eye care",
+      "legacyAliases": ["Healthcare"],
+      "subcategories": [
+        "Clinics & Doctors",
+        "Pharmacies & Medical Stores",
+        "Diagnostic Labs",
+        "Dental & Eye Care",
+        "Ayurveda & Physiotherapy",
+        "Veterinary Care"
+      ]
+    },
+    {
+      "id": "education",
+      "name": "Education & Coaching",
+      "icon": "🎓",
+      "group": "students",
+      "description": "Tutors, coaching institutes, schools, libraries & skill training",
+      "legacyAliases": ["Tutors"],
+      "subcategories": [
+        "Tutors",
+        "Coaching Institutes",
+        "Schools & Colleges",
+        "Computer & Skill Training",
+        "Libraries & Study Rooms",
+        "Music, Dance & Art"
+      ]
+    },
+    {
+      "id": "jobs",
+      "name": "Jobs & Careers",
+      "icon": "💼",
+      "group": "jobs",
+      "description": "Full-time, part-time, internships, driver, delivery & office openings",
+      "legacyAliases": ["Jobs"],
+      "subcategories": [
+        "Full-Time Jobs",
+        "Part-Time & Freelance",
+        "Internships",
+        "Delivery & Driver Jobs",
+        "Office & Admin Staff",
+        "Placement Agencies"
+      ]
+    },
+    {
+      "id": "vehicles",
+      "name": "Vehicles & Auto",
+      "icon": "🚗",
+      "group": "vehicles",
+      "supportsTransaction": true,
+      "transactionTypes": ["Buy", "Sell", "Rent", "Service"],
+      "description": "Cars, bikes, rentals, auto repair, spare parts & EV dealers",
+      "legacyAliases": ["Vehicles"],
+      "subcategories": [
+        "Cars (Buy / Sell)",
+        "Bikes & Scooters",
+        "Car & Bike Rentals",
+        "Auto Repair & Service",
+        "Spare Parts & Tyres",
+        "EV Dealers & Charging"
+      ]
+    },
+    {
+      "id": "home-services",
+      "name": "Home Services & Repairs",
+      "icon": "🔧",
+      "group": "services",
+      "description": "Plumbers, electricians, appliance repair, cleaning, packers & movers",
+      "legacyAliases": ["Repairs", "Cleaning", "Packers & Movers"],
+      "subcategories": [
+        "Repairs",
+        "Plumber & Electrician",
+        "AC & Appliance Repair",
+        "Cleaning",
+        "Packers & Movers",
+        "Carpentry & Painting",
+        "Pest Control & CCTV"
+      ]
+    },
+    {
+      "id": "beauty",
+      "name": "Beauty & Wellness",
+      "icon": "✂️",
+      "group": "services",
+      "description": "Salons, parlours, bridal makeup, spa, fitness gyms & yoga",
+      "legacyAliases": ["Salon & Beauty"],
+      "subcategories": [
+        "Salon & Beauty",
+        "Spa & Massage",
+        "Bridal Makeup",
+        "Gym & Fitness",
+        "Yoga & Meditation"
+      ]
+    },
+    {
+      "id": "travel",
+      "name": "Travel & Tourism",
+      "icon": "✈️",
+      "group": "services",
+      "description": "Cabs, taxis, tour agencies, hotels, resorts & bus rentals",
+      "legacyAliases": ["Travel & Tourism"],
+      "subcategories": [
+        "Cab & Taxi Services",
+        "Tour & Travel Agencies",
+        "Hotels & Resorts",
+        "Bus & Tempo Traveller",
+        "Ticket & Visa Services"
+      ]
+    },
+    {
+      "id": "agriculture",
+      "name": "Agriculture & Farming",
+      "icon": "🌾",
+      "group": "agriculture",
+      "description": "Seeds, fertilizers, tractors, irrigation, dairy & organic farm produce",
+      "legacyAliases": ["Agriculture"],
+      "subcategories": [
+        "Seeds & Fertilizers",
+        "Farm Equipment & Tractors",
+        "Dairy & Poultry Farming",
+        "Irrigation & Solar Pumps",
+        "Organic Farm Produce"
+      ]
+    },
+    {
+      "id": "fashion-laundry",
+      "name": "Tailoring & Laundry",
+      "icon": "🧺",
+      "group": "services",
+      "description": "Tailors, boutiques, laundry, dry cleaning & uniform alterations",
+      "legacyAliases": ["Laundry", "Tailor & Boutique"],
+      "subcategories": [
+        "Laundry",
+        "Tailor & Boutique",
+        "Dry Cleaning & Steam Press",
+        "Uniforms & Alterations"
+      ]
+    },
+    {
+      "id": "business-services",
+      "name": "Printing & Business Services",
+      "icon": "🖨️",
+      "group": "services",
+      "description": "Printing, flex design, IT repair, photography, events & CA/legal",
+      "legacyAliases": ["Printing"],
+      "subcategories": [
+        "Printing",
+        "Computer & Mobile Repair",
+        "Photography & Events",
+        "CA, Legal & Tax Services",
+        "Digital & Marketing"
+      ]
+    }
+  ]
+}
