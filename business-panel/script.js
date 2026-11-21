@@ -18,7 +18,7 @@ const otpField = document.getElementById('otp-field');
 const dashboardContent = document.getElementById('dashboard-content');
 const dashboardMessage = document.getElementById('dashboardMessage');
 const logoutBtn = document.getElementById('logoutBtn');
-
+let ownerOrders = [];
 // Registration Form Elements
 const form = document.getElementById('businessForm');
 const message = document.getElementById('formMessage');
@@ -414,12 +414,13 @@ async function checkAuthAndRender() {
 async function loadDashboardData() {
   dashboardContent.innerHTML = `<div style="text-align:center;padding:40px;color:var(--silver)">Loading your dashboard...</div>`;
   try {
-    const [bizRes, enqRes] = await Promise.all([
+    const [bizRes, enqRes, orderRes] = await Promise.all([
       fetch(`${API}/owner/businesses`, { headers: { Authorization: `Bearer ${currentSessionToken}` } }),
-      fetch(`${API}/owner/enquiries`, { headers: { Authorization: `Bearer ${currentSessionToken}` } })
+      fetch(`${API}/owner/enquiries`, { headers: { Authorization: `Bearer ${currentSessionToken}` } }),
+      fetch(`${API}/owner/orders`, { headers: { Authorization: `Bearer ${currentSessionToken}` } })
     ]);
 
-    if (bizRes.status === 401 || enqRes.status === 401) {
+    if (bizRes.status === 401 || enqRes.status === 401 || orderRes.status === 401) {
       // Session expired or invalid
       localStorage.removeItem('zaroorat_owner_token');
       localStorage.removeItem('zaroorat_owner_phone');
@@ -435,13 +436,36 @@ async function loadDashboardData() {
 
     const bizData = await bizRes.json();
     const enqData = await enqRes.json();
+    const orderData = await orderRes.json();
 
     ownerBusinesses = bizData.businesses || [];
     ownerEnquiries = enqData.enquiries || [];
+    ownerOrders = orderData.orders || [];
 
     renderDashboard();
   } catch (err) {
     dashboardContent.innerHTML = `<div style="color:var(--coral);padding:20px;">Failed to load dashboard data: ${esc(err.message)}</div>`;
+  }
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    const res = await fetch(`${API}/owner/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${currentSessionToken}`
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update order status');
+    const order = ownerOrders.find(o => o.id === orderId);
+    if (order) order.status = newStatus;
+    renderDashboard();
+  } catch (err) {
+    alert('Error updating order status: ' + err.message);
+    loadDashboardData();
   }
 }
 
@@ -451,6 +475,8 @@ function renderDashboard() {
   const pendingBiz = ownerBusinesses.filter(b => b.status === 'pending').length;
   const totalEnq = ownerEnquiries.length;
   const newEnq = ownerEnquiries.filter(e => e.status === 'new').length;
+  const totalOrders = ownerOrders.length;
+  const pendingOrders = ownerOrders.filter(o => o.status === 'pending').length;
 
   dashboardContent.innerHTML = `
     <div class="stats-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-bottom:30px;">
@@ -465,10 +491,86 @@ function renderDashboard() {
         <small style="color:var(--silver);">${newEnq} new enquiries</small>
       </div>
       <div class="stat-card futuristic-card neon-border">
+        <span class="eyebrow">Customer Orders</span>
+        <h3 style="font-size:28px;margin:8px 0 0;color:var(--cyan);">${totalOrders}</h3>
+        <small style="color:var(--silver);">${pendingOrders} pending orders</small>
+      </div>
+      <div class="stat-card futuristic-card neon-border">
         <span class="eyebrow">Account Phone</span>
         <h3 style="font-size:18px;margin:12px 0 0;color:#fff;">+91 ${esc(currentUserPhone)}</h3>
         <small style="color:var(--silver);">Verified Owner</small>
       </div>
+    </div>
+
+    <!-- Incoming Orders Section -->
+    <div class="dashboard-block futuristic-card neon-border" style="margin-bottom:35px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0;font-size:20px;font-family:'Plus Jakarta Sans';">Incoming Customer Orders</h3>
+      </div>
+      ${ownerOrders.length === 0 ? `
+        <div class="futuristic-card neon-border" style="padding:30px;text-align:center;">
+          <span style="font-size:40px;display:block;margin-bottom:15px;">📦</span>
+          <p style="color:var(--silver);font-size:14px;">No customer orders placed yet.</p>
+        </div>
+      ` : `
+        <div class="orders-table-wrap" style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;text-align:left;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1);color:var(--silver);">
+                <th style="padding:12px;">Order ID & Date</th>
+                <th style="padding:12px;">Customer Details</th>
+                <th style="padding:12px;">Ordered Items</th>
+                <th style="padding:12px;">Total</th>
+                <th style="padding:12px;">Status</th>
+                <th style="padding:12px;">Update Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ownerOrders.map(o => {
+                const dateStr = new Date(o.createdAt).toLocaleString();
+                let badgeBg = 'rgba(216,199,255,0.2)';
+                let badgeColor = 'var(--lavender)';
+                if (o.status === 'confirmed') { badgeBg = 'rgba(32,184,255,0.2)'; badgeColor = 'var(--cyan)'; }
+                else if (o.status === 'completed') { badgeBg = 'rgba(46,204,113,0.2)'; badgeColor = '#2ecc71'; }
+                else if (o.status === 'cancelled') { badgeBg = 'rgba(255,107,138,0.2)'; badgeColor = 'var(--coral)'; }
+
+                return `
+                  <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:14px;vertical-align:top;">
+                      <div style="font-weight:700;color:var(--cyan);font-family:monospace;">${esc(o.id.slice(0, 8))}...</div>
+                      <small style="color:var(--silver);font-size:11px;">${dateStr}</small>
+                    </td>
+                    <td style="padding:14px;vertical-align:top;">
+                      <div style="font-weight:700;color:#fff;">${esc(o.customerName)}</div>
+                      <a href="tel:${esc(o.customerPhone)}" style="color:var(--blue);font-size:12px;text-decoration:none;">📞 +91 ${esc(o.customerPhone)}</a>
+                      <div style="color:var(--silver);font-size:11px;margin-top:4px;max-width:180px;">${esc(o.deliveryAddress)}</div>
+                    </td>
+                    <td style="padding:14px;vertical-align:top;color:#fff;">
+                      ${(o.items || []).map(i => `<div style="font-size:12px;">${esc(i.name)} &times; <b>${i.quantity}</b> (₹${i.price})</div>`).join('')}
+                    </td>
+                    <td style="padding:14px;vertical-align:top;font-weight:800;color:var(--cyan);font-size:14px;">
+                      ₹${o.totalAmount}
+                    </td>
+                    <td style="padding:14px;vertical-align:top;">
+                      <span style="font-size:11px;font-weight:700;padding:4px 8px;border-radius:6px;background:${badgeBg};color:${badgeColor};text-transform:uppercase;">
+                        ${esc(o.status)}
+                      </span>
+                    </td>
+                    <td style="padding:14px;vertical-align:top;">
+                      <select class="order-status-select" data-id="${esc(o.id)}" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:6px 10px;color:#fff;font-size:12px;outline:none;">
+                        <option value="pending" ${o.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="confirmed" ${o.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                        <option value="completed" ${o.status === 'completed' ? 'selected' : ''}>Completed</option>
+                        <option value="cancelled" ${o.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                      </select>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `}
     </div>
 
     <div class="dashboard-block futuristic-card neon-border" style="margin-bottom:35px;">
@@ -682,5 +784,7 @@ dashboardContent.addEventListener('click', (e) => {
 dashboardContent.addEventListener('change', (e) => {
   if (e.target.classList.contains('enquiry-status-select')) {
     updateEnquiryStatus(e.target.dataset.id, e.target.value);
+  } else if (e.target.classList.contains('order-status-select')) {
+    updateOrderStatus(e.target.dataset.id, e.target.value);
   }
 });

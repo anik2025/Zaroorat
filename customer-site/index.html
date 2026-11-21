@@ -28,10 +28,11 @@
         <span>ZARO<span>ORAT</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation"><a href="#categories">Categories</a><a href="#popular">Explore Businesses</a><a href="#business">List Your Business</a></nav>
+      <button class="ghost-btn" id="cartTrigger" type="button" style="margin-right: 10px;">Cart (0)</button>
       <button class="ghost-btn" id="loginBtn" type="button">Login</button>
       <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
     </div>
-    <div class="mobile-menu" id="mobileMenu"><a href="#categories">Categories</a><a href="#popular">Explore Businesses</a><a href="#business">List Your Business</a><a href="login.html">Login</a></div>
+    <div class="mobile-menu" id="mobileMenu"><a href="#categories">Categories</a><a href="#popular">Explore Businesses</a><a href="#business">List Your Business</a><a href="#" id="mobileCartTrigger">Cart (0)</a><a href="login.html">Login</a></div>
   </header>
 
   <main id="top">
@@ -307,6 +308,47 @@
         </form>
         <div id="enquiryModalMsg" class="form-message" style="margin-top: 15px; font-size: 13px;"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Cart & Checkout Modal -->
+  <div class="modal-backdrop" id="cartBackdrop" hidden>
+    <div class="modal" id="cartModal" style="width:100%; max-width:550px;">
+      <button class="modal-close" id="cartClose">×</button>
+      <div id="cartContent">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:15px;">
+          <h2 id="cartTitle" style="margin:0;">Your Cart</h2>
+          <button type="button" class="ghost-btn" id="viewHistoryBtn" style="padding:6px 12px; font-size:12px;">Order History</button>
+        </div>
+        <div id="cartItemsList" style="margin: 20px 0; max-height: 250px; overflow-y: auto; text-align: left;"></div>
+        <div id="cartSummary" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; font-weight: bold; text-align: right; font-size: 16px;"></div>
+        <button class="primary-btn" id="checkoutBtn" style="width: 100%; margin-top: 20px;">Proceed to Checkout</button>
+      </div>
+      <div id="checkoutContent" hidden>
+        <div style="display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:15px;">
+          <button type="button" id="backToCartBtn" style="background:none; border:none; color:var(--blue); font-size:18px; cursor:pointer;">←</button>
+          <h2 style="margin:0;">Checkout</h2>
+        </div>
+        <form id="checkoutForm">
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Your Name *
+            <input type="text" name="customerName" id="checkoutCustomerName" required placeholder="Enter your full name" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+          </label>
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Delivery Address *
+            <textarea name="deliveryAddress" id="checkoutDeliveryAddress" required rows="3" placeholder="Shop/House number, Street, Area, LandMark" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; font-family: inherit; resize: vertical;"></textarea>
+          </label>
+          <button class="primary-btn" type="submit" style="width: 100%; margin-top: 15px;">Place Order</button>
+        </form>
+      </div>
+      <div id="orderHistoryContent" hidden>
+        <div style="display:flex; align-items:center; gap:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:15px;">
+          <button type="button" id="backFromHistoryBtn" style="background:none; border:none; color:var(--blue); font-size:18px; cursor:pointer;">←</button>
+          <h2 style="margin:0;">Order History</h2>
+        </div>
+        <div id="orderHistoryList" style="max-height: 350px; overflow-y: auto; text-align: left;"></div>
+      </div>
+      <div id="orderStatusMsg" class="form-message" style="margin-top: 15px;"></div>
     </div>
   </div>
 

@@ -540,9 +540,6 @@ footer{background:var(--navy);color:#fff;padding:52px 0 24px}
   border-radius: 8px;
   font-size: 13px;
   text-align: center;
-  display: none;
-}
-.form-message.show {
   display: block;
 }
 .form-message.error {

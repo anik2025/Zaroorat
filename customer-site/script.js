@@ -12,6 +12,46 @@ const areaSelect = document.getElementById('areaSelect');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 const sorted = values => [...values].sort((a, b) => a.localeCompare(b));
 
+// Cart state
+let cart = JSON.parse(localStorage.getItem('zaroorat_cart') || '{}');
+const cartKey = 'zaroorat_cart';
+
+function saveCart() {
+  localStorage.setItem(cartKey, JSON.stringify(cart));
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const btn = document.getElementById('cartTrigger');
+  const total = Object.values(cart).reduce((sum, bizGroup) => {
+    return sum + Object.values(bizGroup.products || {}).reduce((s, p) => s + p.qty, 0);
+  }, 0);
+  if (btn) {
+    btn.textContent = `Cart (${total})`;
+  }
+}
+
+function addToCart(businessId, businessName, productName, price) {
+  if (!cart[businessId]) cart[businessId] = { businessName, products: {} };
+  if (!cart[businessId].products[productName]) cart[businessId].products[productName] = { price, qty: 0 };
+  cart[businessId].products[productName].qty++;
+  saveCart();
+}
+
+function removeFromCart(businessId, productName) {
+  if (!cart[businessId]) return;
+  delete cart[businessId].products[productName];
+  if (Object.keys(cart[businessId].products).length === 0) delete cart[businessId];
+  saveCart();
+}
+
+function updateQty(businessId, productName, delta) {
+  if (!cart[businessId] || !cart[businessId].products[productName]) return;
+  cart[businessId].products[productName].qty = Math.max(1, Math.min(100, cart[businessId].products[productName].qty + delta));
+  if (cart[businessId].products[productName].qty === 0) removeFromCart(businessId, productName);
+  else saveCart();
+}
+
 function matchesCategory(business, targetCategory) {
   if (!targetCategory) return true;
   const t = targetCategory.toLowerCase();
@@ -303,7 +343,33 @@ function renderBusinesses(list = businesses) {
           <span class="rating">★ ${esc(business.rating)} (${esc(business.reviews)})</span>
         </div>
         <p class="card-meta">📍 ${esc(business.area || business.city || business.state)} &nbsp; · &nbsp; ${esc(business.meta)}</p>
-        <div class="card-footer">
+
+        ${Array.isArray(business.products) && business.products.length > 0 ? `
+          <div class="card-products" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+            <div style="font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; margin-bottom:8px;">Menu / Products</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              ${business.products.map(p => {
+                const pName = typeof p === 'object' && p !== null ? p.name : p;
+                const pPrice = typeof p === 'object' && p !== null ? (p.price || 0) : 0;
+                return `
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                    <span>${esc(pName)} ${pPrice > 0 ? `<b style="color:var(--cyan);">₹${pPrice}</b>` : ''}</span>
+                    <button type="button" class="add-to-cart-btn ghost-btn"
+                      data-biz-id="${esc(business.id)}"
+                      data-biz-name="${esc(business.name)}"
+                      data-prod-name="${esc(pName)}"
+                      data-prod-price="${pPrice}"
+                      style="padding:3px 8px; font-size:11px; height:auto; border-color:rgba(118, 87, 255, 0.5); cursor:pointer;">
+                      + Add
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="card-footer" style="margin-top:12px;">
           ${business.id ? `<button type="button" class="wa-link enquire-trigger-btn" data-id="${esc(business.id)}" data-name="${esc(business.name)}" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0;">Enquire ↗</button>` : '<span class="wa-link muted-action">Enquire after approval</span>'}
           ${phone ? `<a class="wa-link" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}
         </div>
@@ -320,6 +386,29 @@ function renderBusinesses(list = businesses) {
       const bid = btn.dataset.id;
       const bname = btn.dataset.name;
       openEnquiryModal(bid, bname);
+    });
+  });
+
+  // Attach click listeners to all Add to Cart buttons
+  document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const bizId = btn.dataset.bizId;
+      const bizName = btn.dataset.bizName;
+      const prodName = btn.dataset.prodName;
+      const prodPrice = Number(btn.dataset.prodPrice || 0);
+      addToCart(bizId, bizName, prodName, prodPrice);
+
+      // Update UI visual feedback
+      const originalText = btn.textContent;
+      btn.textContent = 'Added ✔';
+      btn.style.color = 'var(--cyan)';
+      btn.style.borderColor = 'var(--cyan)';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 1000);
     });
   });
 }
@@ -502,7 +591,346 @@ if (enquiryModalForm) {
   });
 }
 
-// Update renderBusinesses to use openEnquiryModal instead of page redirect
+// Cart & Checkout Logic Implementation
+const cartBackdrop = document.getElementById('cartBackdrop');
+const cartItemsList = document.getElementById('cartItemsList');
+const cartSummary = document.getElementById('cartSummary');
+const checkoutBtn = document.getElementById('checkoutBtn');
+const cartContent = document.getElementById('cartContent');
+const checkoutContent = document.getElementById('checkoutContent');
+const checkoutForm = document.getElementById('checkoutForm');
+const orderStatusMsg = document.getElementById('orderStatusMsg');
+const orderHistoryContent = document.getElementById('orderHistoryContent');
+const orderHistoryList = document.getElementById('orderHistoryList');
+
+let activeCheckoutBusinessId = '';
+
+function openCartModal() {
+  if (cartBackdrop) {
+    cartBackdrop.hidden = false;
+    showCartView();
+  }
+}
+
+function closeCartModal() {
+  if (cartBackdrop) {
+    cartBackdrop.hidden = true;
+  }
+}
+
+function showCartView() {
+  if (cartContent) cartContent.hidden = false;
+  if (checkoutContent) checkoutContent.hidden = true;
+  if (orderHistoryContent) orderHistoryContent.hidden = true;
+  if (orderStatusMsg) orderStatusMsg.textContent = '';
+  renderCart();
+}
+
+function showCheckoutView(businessId) {
+  console.log('Current token in showCheckoutView:', currentAccessToken);
+  if (!currentAccessToken) {
+    alert('You need to Login to proceed to Checkout.');
+    closeCartModal();
+    openAuthModal();
+    return;
+  }
+  activeCheckoutBusinessId = businessId;
+  if (cartContent) cartContent.hidden = true;
+  if (checkoutContent) checkoutContent.hidden = false;
+  if (orderHistoryContent) orderHistoryContent.hidden = true;
+  if (orderStatusMsg) orderStatusMsg.textContent = '';
+
+  // Prefill name if available
+  const nameField = document.getElementById('checkoutCustomerName');
+  if (nameField && !nameField.value) {
+    nameField.value = 'Valued Customer';
+  }
+}
+
+async function showOrderHistoryView() {
+  if (!currentAccessToken) {
+    alert('Please login to view your Order History.');
+    closeCartModal();
+    openAuthModal();
+    return;
+  }
+  if (cartContent) cartContent.hidden = true;
+  if (checkoutContent) checkoutContent.hidden = true;
+  if (orderHistoryContent) orderHistoryContent.hidden = false;
+  if (orderStatusMsg) orderStatusMsg.textContent = '';
+
+  if (orderHistoryList) {
+    orderHistoryList.innerHTML = '<p style="text-align:center;">Loading orders...</p>';
+    try {
+      const res = await fetch(`${API}/customer/orders`, {
+        headers: {
+          'Authorization': `Bearer ${currentAccessToken}`,
+          'x-demo-mode': 'true'
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to fetch order history');
+
+      const orders = data.orders || [];
+      if (orders.length === 0) {
+        orderHistoryList.innerHTML = '<p style="text-align:center;color:#a7afc5;">You have not placed any orders yet.</p>';
+        return;
+      }
+
+      orderHistoryList.innerHTML = orders.map(order => {
+        const dateStr = new Date(order.createdAt).toLocaleDateString('en-IN', {
+          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        let statusColor = 'var(--blue)';
+        if (order.status === 'confirmed') statusColor = 'var(--cyan)';
+        else if (order.status === 'completed') statusColor = '#2ecc71';
+        else if (order.status === 'cancelled') statusColor = 'var(--coral)';
+
+        return `
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:15px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:11px; color:#a7afc5;">ID: ${order.id.slice(0, 8)}... &middot; ${dateStr}</span>
+              <span style="font-size:11px; font-weight:bold; color:${statusColor}; text-transform:uppercase; background:rgba(255,255,255,0.05); padding:3px 8px; border-radius:6px; border:1px solid ${statusColor}33;">
+                ${order.status}
+              </span>
+            </div>
+            <div style="font-size:13px; margin-bottom:8px; line-height:1.4;">
+              ${order.items.map(item => `
+                <div style="display:flex; justify-content:space-between;">
+                  <span style="color:#fff;">${esc(item.name)} &times; ${item.quantity}</span>
+                  <span style="color:#a7afc5;">₹${item.price * item.quantity}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px; font-size:13px; font-weight:bold;">
+              <span style="color:#a7afc5;">Total Amount:</span>
+              <span style="color:var(--cyan); font-size:15px;">₹${order.totalAmount}</span>
+            </div>
+            <div style="font-size:11px; color:#a7afc5; margin-top:6px; font-style:italic;">
+              Address: ${esc(order.deliveryAddress)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      orderHistoryList.innerHTML = `<p style="text-align:center;color:var(--coral);">${esc(err.message)}</p>`;
+    }
+  }
+}
+
+function renderCart() {
+  if (!cartItemsList || !cartSummary || !checkoutBtn) return;
+
+  const businessIds = Object.keys(cart);
+  if (businessIds.length === 0) {
+    cartItemsList.innerHTML = `
+      <div style="text-align:center; padding:30px 10px;">
+        <div style="font-size:36px; margin-bottom:10px;">🛒</div>
+        <p style="color:#a7afc5; margin:0;">Your cart is empty.</p>
+      </div>
+    `;
+    cartSummary.innerHTML = 'Total: ₹0';
+    checkoutBtn.style.display = 'none';
+    return;
+  }
+
+  checkoutBtn.style.display = 'block';
+
+  let totalAll = 0;
+  let html = '';
+
+  businessIds.forEach(bizId => {
+    const bizGroup = cart[bizId];
+    let groupTotal = 0;
+
+    html += `
+      <div class="cart-biz-group" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:15px; margin-bottom:15px;">
+        <h4 style="margin:0 0 12px; font-size:14px; color:var(--blue); border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">
+          ${esc(bizGroup.businessName)}
+        </h4>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+    `;
+
+    Object.keys(bizGroup.products).forEach(prodName => {
+      const p = bizGroup.products[prodName];
+      const itemSubtotal = p.price * p.qty;
+      groupTotal += itemSubtotal;
+      totalAll += itemSubtotal;
+
+      html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+          <div style="flex:1;">
+            <div style="font-weight:600; color:#fff;">${esc(prodName)}</div>
+            <div style="font-size:11px; color:#a7afc5;">₹${p.price} each</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="qty-btn" onclick="updateQty('${esc(bizId)}', '${esc(prodName)}', -1)" style="width:24px; height:24px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; font-weight:bold; cursor:pointer;">-</button>
+            <span style="font-weight:bold; min-width:18px; text-align:center;">${p.qty}</span>
+            <button type="button" class="qty-btn" onclick="updateQty('${esc(bizId)}', '${esc(prodName)}', 1)" style="width:24px; height:24px; border-radius:50%; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.05); color:#fff; font-weight:bold; cursor:pointer;">+</button>
+            <button type="button" class="remove-btn" onclick="removeFromCart('${esc(bizId)}', '${esc(prodName)}')" style="margin-left:8px; background:none; border:none; color:var(--coral); cursor:pointer; font-size:14px;">✖</button>
+          </div>
+          <span style="font-weight:600; margin-left:12px; min-width:55px; text-align:right;">₹${itemSubtotal}</span>
+        </div>
+      `;
+    });
+
+    html += `
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:8px; font-size:12px;">
+          <span style="color:#a7afc5;">Group Total:</span>
+          <span style="font-weight:bold; color:#fff;">₹${groupTotal}</span>
+        </div>
+        <button type="button" class="primary-btn checkout-group-btn" onclick="showCheckoutView('${esc(bizId)}')" style="width:100%; margin-top:10px; padding:8px; font-size:12px;">
+          Checkout from ${esc(bizGroup.businessName)}
+        </button>
+      </div>
+    `;
+  });
+
+  cartItemsList.innerHTML = html;
+  cartSummary.innerHTML = `Grand Total: ₹${totalAll}`;
+}
+
+// Event Bindings for Modal Switches
+const cartClose = document.getElementById('cartClose');
+if (cartClose) cartClose.addEventListener('click', closeCartModal);
+
+const cartTrigger = document.getElementById('cartTrigger');
+if (cartTrigger) cartTrigger.addEventListener('click', openCartModal);
+
+const mobileCartTrigger = document.getElementById('mobileCartTrigger');
+if (mobileCartTrigger) mobileCartTrigger.addEventListener('click', (e) => {
+  e.preventDefault();
+  openCartModal();
+});
+
+const viewHistoryBtn = document.getElementById('viewHistoryBtn');
+if (viewHistoryBtn) viewHistoryBtn.addEventListener('click', showOrderHistoryView);
+
+const backToCartBtn = document.getElementById('backToCartBtn');
+if (backToCartBtn) backToCartBtn.addEventListener('click', showCartView);
+
+const backFromHistoryBtn = document.getElementById('backFromHistoryBtn');
+if (backFromHistoryBtn) backFromHistoryBtn.addEventListener('click', showCartView);
+
+const defaultCheckoutBtn = document.getElementById('checkoutBtn');
+if (defaultCheckoutBtn) {
+  defaultCheckoutBtn.addEventListener('click', () => {
+    const bids = Object.keys(cart);
+    if (bids.length > 0) {
+      showCheckoutView(bids[0]);
+    }
+  });
+}
+
+// Checkout Submit Handler
+if (checkoutForm) {
+  checkoutForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentAccessToken) {
+      alert('Your session expired. Please login again.');
+      return;
+    }
+
+    const bizId = activeCheckoutBusinessId;
+    if (!bizId || !cart[bizId]) {
+      alert('Invalid business or empty cart.');
+      return;
+    }
+
+    const formData = new FormData(checkoutForm);
+    const customerName = formData.get('customerName').trim();
+    const deliveryAddress = formData.get('deliveryAddress').trim();
+
+    if (!customerName || !deliveryAddress) {
+      alert('Please fill out all required fields.');
+      return;
+    }
+
+    const orderItems = Object.keys(cart[bizId].products).map(name => {
+      return {
+        name,
+        price: cart[bizId].products[name].price,
+        quantity: cart[bizId].products[name].qty
+      };
+    });
+
+    const payload = {
+      businessId: bizId,
+      customerName,
+      customerPhone: '0000000000', // Server extracts and enforces using session phone anyway
+      items: orderItems,
+      deliveryAddress
+    };
+
+    if (orderStatusMsg) {
+      orderStatusMsg.textContent = 'Placing your order...';
+      orderStatusMsg.className = 'form-message';
+    }
+
+    try {
+      const res = await fetch(`${API}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentAccessToken}`,
+          'x-demo-mode': 'true'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to place order');
+
+      // Success: Clear Cart for this business
+      delete cart[bizId];
+      saveCart();
+
+      if (orderStatusMsg) {
+        orderStatusMsg.innerHTML = `
+          <div style="color:#2ecc71; font-weight:bold; font-size:15px; margin-bottom:10px;">Order Placed Successfully!</div>
+          <div style="font-size:13px; color:#fff;">Order ID: <b style="color:var(--cyan);">${data.order.id}</b></div>
+          <div style="font-size:12px; color:#a7afc5; margin-top:5px;">Check status anytime in your Order History.</div>
+        `;
+        orderStatusMsg.className = 'form-message success';
+      }
+
+      // Reset checkout form fields
+      checkoutForm.reset();
+
+      setTimeout(() => {
+        showOrderHistoryView();
+      }, 3000);
+
+    } catch (err) {
+      if (orderStatusMsg) {
+        orderStatusMsg.textContent = err.message;
+        orderStatusMsg.className = 'form-message error';
+      }
+    }
+  });
+}
+
+// Global closeModal backdrop behavior for cart
+if (cartBackdrop) {
+  cartBackdrop.addEventListener('click', (e) => {
+    if (e.target === cartBackdrop) closeCartModal();
+  });
+}
+
+// Initialize Cart badge on load
+updateCartBadge();
+
+// Expose handlers globally for inline HTML onclick attributes
+window.updateQty = updateQty;
+window.removeFromCart = removeFromCart;
+window.showCheckoutView = showCheckoutView;
+window.showOrderHistoryView = showOrderHistoryView;
+window.showCartView = showCartView;
+window.openCartModal = openCartModal;
+window.closeCartModal = closeCartModal;
+
 function closeModal() {
   backdrop.hidden = true;
   const modalExplore = document.getElementById('modalExplore');

@@ -5,7 +5,8 @@ const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'database', 'data');
-const DATA_FILE = process.env.KOTAMITRA_DATA_FILE || path.join(DATA_DIR, 'businesses.json');
+const DEFAULT_DATA_FILE = path.join(DATA_DIR, 'businesses.json');
+const DATA_FILE = process.env.KOTAMITRA_DATA_FILE || DEFAULT_DATA_FILE;
 const AREAS_FILE = path.join(ROOT, 'database', 'areas.json');
 const LOCATIONS_FILE = path.join(ROOT, 'database', 'locations.json');
 const CATEGORIES_FILE = path.join(ROOT, 'database', 'categories.json');
@@ -93,7 +94,7 @@ function checkRateLimit(req, res, actionKey, maxRequests, windowMs) {
 
 const VALID_CATEGORIES = new Set(['Tiffin & Food', 'PG & Hostel', 'Laundry', 'Repairs', 'Tutors', 'Salon & Beauty', 'Printing', 'Bakery & Cakes', 'Cleaning', 'Packers & Movers', 'Tailor & Boutique', 'Shopping & Retail', 'Property: Buy/Rent/Sell', 'Land & Plots', 'Houses & Flats', 'Commercial Property', 'Vehicles', 'Agriculture', 'Travel & Tourism', 'Healthcare', 'Jobs']);
 const PHONE_PATTERN = /^[6-9]\d{9}$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function text(value) { return typeof value === 'string' ? value.trim() : null; }
 function normalizePhone(value) {
   if (typeof value !== 'string' || !/^[+()\-\s\d]+$/.test(value.trim())) return null;
@@ -124,7 +125,11 @@ function validateBusinessInput(input) {
   if (area && !(selectedCity.areas || []).includes(area)) throw validationError('Select a valid area for the selected city');
   if (!address || address.length < 5 || address.length > 300) throw validationError('Address must be 5 to 300 characters');
   if (description === null || description.length > 1000) throw validationError('Description must be at most 1000 characters');
-  const products = input.products === undefined ? [] : (Array.isArray(input.products) ? input.products.map(p => text(p)).filter(Boolean) : typeof input.products === 'string' ? input.products.split(',').map(p => p.trim()).filter(Boolean) : []);
+  const products = input.products === undefined ? [] : (Array.isArray(input.products) ? input.products.map(p => {
+    if (typeof p === 'object' && p !== null && p.name) return { name: text(p.name), price: Number(p.price || 0) };
+    const str = text(p);
+    return str ? { name: str, price: 0 } : null;
+  }).filter(Boolean) : typeof input.products === 'string' ? input.products.split(',').map(p => { const str = p.trim(); return str ? { name: str, price: 0 } : null; }).filter(Boolean) : []);
   const pricing = input.pricing === undefined ? '' : text(input.pricing);
   const images = input.images === undefined ? [] : (Array.isArray(input.images) ? input.images.map(i => text(i)).filter(Boolean) : typeof input.images === 'string' ? input.images.split(',').map(i => i.trim()).filter(Boolean) : []);
   return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description, products, pricing, images };
@@ -155,6 +160,9 @@ function isDemoMode(req, url) {
 }
 
 function getDataFilePath(req, url) {
+  if (process.env.KOTAMITRA_DATA_FILE) {
+    return process.env.KOTAMITRA_DATA_FILE;
+  }
   if (isDemoMode(req, url) && fs.existsSync(DEMO_FILE)) {
     return DEMO_FILE;
   }
@@ -170,7 +178,7 @@ function readData(req, url) {
 
 function writeData(data, req, url) {
   const file = getDataFilePath(req, url);
-  if (file === DATA_FILE && isDemoMode(req, url)) {
+  if (file === DEFAULT_DATA_FILE && isDemoMode(req, url)) {
     throw new Error('SAFETY ABORT: Attempted to write to real data in Demo Mode!');
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -179,7 +187,7 @@ function writeData(data, req, url) {
   fs.renameSync(tmpFile, file);
 }
 function setSecurityHeaders(res) {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';");
   res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -196,6 +204,47 @@ function body(req) { return new Promise((resolve, reject) => { let raw = ''; req
 function token(req) { const value = req.headers.authorization || ''; return value.startsWith('Bearer ') ? value.slice(7) : ''; }
 function requireAdmin(req, res) { const session = sessions.get(token(req)); if (!session || session.type !== 'admin') { json(res, 401, { error: 'Admin login required' }); return false; } return true; }
 function requireOwner(req, res) { const session = sessions.get(token(req)); if (!session || !session.phone) { json(res, 401, { error: 'Owner login required' }); return null; } return session; }
+function requireCustomer(req, res) { const session = sessions.get(token(req)); if (!session || session.type !== 'customer') { json(res, 401, { error: 'Customer login required' }); return null; } return session; }
+function validateOrderInput(input, data, session) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
+  const businessId = text(input.businessId);
+  const customerName = text(input.customerName);
+  const customerPhone = session?.phone || normalizePhone(input.customerPhone);
+  const items = Array.isArray(input.items) ? input.items : [];
+  const deliveryAddress = text(input.deliveryAddress);
+
+  if (!businessId || !UUID_PATTERN.test(businessId)) throw validationError('Enter a valid business ID');
+  const business = (Array.isArray(data.businesses) ? data.businesses : []).find(item => item.id === businessId);
+  if (!business) throw validationError('Business not found');
+  if (business.status !== 'approved') throw validationError('This business is not currently accepting orders');
+  if (!customerName || customerName.length < 2 || customerName.length > 100) throw validationError('Customer name must be 2 to 100 characters');
+  if (!customerPhone) throw validationError('Enter a valid Indian 10 digit mobile number');
+  if (!deliveryAddress || deliveryAddress.length < 5 || deliveryAddress.length > 300) throw validationError('Delivery address must be 5 to 300 characters');
+  if (items.length === 0) throw validationError('Order must contain at least one item');
+
+  // Server-side trusted price calculation & item validation (Prevents price manipulation)
+  let calculatedTotal = 0;
+  const validatedItems = items.map(item => {
+    const itemName = text(item.name);
+    const qty = Number(item.quantity || 1);
+    if (!itemName || qty < 1 || qty > 100) throw validationError('Invalid item name or quantity');
+
+    let unitPrice = Number(item.price || 0);
+    if (isNaN(unitPrice) || unitPrice < 0) unitPrice = 0;
+
+    if (Array.isArray(business.products)) {
+      const found = business.products.find(p => typeof p === 'object' && p !== null && p.name && p.name.toLowerCase() === itemName.toLowerCase());
+      if (found && typeof found.price === 'number') {
+        unitPrice = found.price;
+      }
+    }
+
+    calculatedTotal += unitPrice * qty;
+    return { name: itemName, price: unitPrice, quantity: qty };
+  });
+
+  return { businessId, customerName, customerPhone, items: validatedItems, totalAmount: calculatedTotal, deliveryAddress };
+}
 function resolveEnquiries(enquiries, businesses) {
   const byId = new Map((Array.isArray(businesses) ? businesses : []).map(business => [String(business.id), business]));
   return (Array.isArray(enquiries) ? enquiries : []).map(enquiry => {
@@ -277,6 +326,43 @@ const server = http.createServer(async (req, res) => {
       const enquiry = data.enquiries.find(item => item.id === id); if (!enquiry) return json(res, 404, { error: 'Enquiry not found' });
       if (input.status && !['new', 'contacted', 'closed'].includes(input.status)) return json(res, 400, { error: 'Invalid enquiry status' });
       if (input.status) enquiry.status = input.status; enquiry.updatedAt = new Date().toISOString(); writeData(data, req, url); return json(res, 200, { enquiry });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/orders') {
+      if (!checkRateLimit(req, res, 'orders', 20, 60000)) return;
+      const session = requireCustomer(req, res);
+      if (!session) return;
+      const input = await body(req); const data = readData(req, url); data.orders = data.orders || [];
+      const orderInput = validateOrderInput(input, data, session);
+      const order = { id: crypto.randomUUID(), ...orderInput, status: 'pending', createdAt: new Date().toISOString() };
+      data.orders.push(order); writeData(data, req, url); return json(res, 201, { order });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/customer/orders') {
+      const session = requireCustomer(req, res); if (!session) return;
+      const data = readData(req, url);
+      const orders = (data.orders || []).filter(o => o.customerPhone === session.phone);
+      return json(res, 200, { orders });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/owner/orders') {
+      const session = requireOwner(req, res); if (!session) return;
+      const data = readData(req, url);
+      const ownedIds = new Set((data.businesses || []).filter(b => b.phone === session.phone).map(b => b.id));
+      const orders = (data.orders || []).filter(o => ownedIds.has(o.businessId));
+      return json(res, 200, { orders });
+    }
+    if (req.method === 'PATCH' && url.pathname.startsWith('/api/owner/orders/')) {
+      const session = requireOwner(req, res); if (!session) return;
+      const id = url.pathname.split('/').pop();
+      const input = await body(req);
+      const data = readData(req, url);
+      const order = (data.orders || []).find(item => item.id === id);
+      if (!order) return json(res, 404, { error: 'Order not found' });
+      const business = (data.businesses || []).find(item => item.id === order.businessId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Order does not belong to your business' });
+      if (input.status && !['pending', 'confirmed', 'completed', 'cancelled'].includes(input.status)) return json(res, 400, { error: 'Invalid order status' });
+      if (input.status) order.status = input.status;
+      order.updatedAt = new Date().toISOString();
+      writeData(data, req, url);
+      return json(res, 200, { order });
     }
     if (req.method === 'POST' && url.pathname === '/api/businesses') {
       const input = await body(req); const businessInput = validateBusinessInput(input); const data = readData(req, url);
