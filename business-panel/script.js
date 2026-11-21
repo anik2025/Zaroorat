@@ -607,6 +607,15 @@ function openEditBusinessModal(businessId) {
           <label class="input-label">Business Description
             <textarea name="description" rows="3" maxlength="500">${esc(b.description || '')}</textarea>
           </label>
+          <label class="input-label">Products / Services (comma separated)
+            <textarea name="products" rows="2" maxlength="500">${esc(Array.isArray(b.products) ? b.products.join(', ') : '')}</textarea>
+          </label>
+          <label class="input-label">Pricing Info
+            <input name="pricing" value="${esc(b.pricing || '')}" maxlength="150">
+          </label>
+          <label class="input-label">Image URLs (comma separated)
+            <input name="images" value="${esc(Array.isArray(b.images) ? b.images.join(', ') : '')}" maxlength="500">
+          </label>
           <div class="form-actions" style="margin-top:10px;">
             <button type="button" class="submit-btn" id="cancelEditModalBtn" style="background:var(--muted);">Cancel</button>
             <button type="submit" class="submit-btn">Save Changes 🚀</button>

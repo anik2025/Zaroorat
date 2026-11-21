@@ -155,6 +155,15 @@
           <label class="wide input-label">Business Description
             <textarea name="description" rows="4" maxlength="500" placeholder="What services or products do you offer? You can include price range or working hours."></textarea>
           </label>
+          <label class="wide input-label">Products / Services Offered (comma separated)
+            <textarea name="products" rows="2" maxlength="500" placeholder="e.g. Tiffin service, Corporate catering, Monthly plans"></textarea>
+          </label>
+          <label class="wide input-label">Pricing Info
+            <input name="pricing" placeholder="e.g. Starts from ₹1500/month or ₹50 per meal" maxlength="150">
+          </label>
+          <label class="wide input-label">Image URLs (comma separated)
+            <input name="images" placeholder="e.g. https://example.com/image1.jpg, https://example.com/image2.jpg" maxlength="500">
+          </label>
         </div>
         <div class="consent">
           <input id="consent" type="checkbox" required>
@@ -172,6 +181,32 @@
     <span>© 2026 ZAROORAT</span>
     <span>Find everything you need, in one place.</span>
   </footer>
+
+  <!-- Unified Auth Modal -->
+  <div class="modal-backdrop" id="authBackdrop" hidden>
+    <div class="modal" id="authModal">
+      <button class="modal-close" id="authClose">×</button>
+      <div id="authContent">
+        <div class="modal-icon">👤</div>
+        <h2 id="authTitle">Sign In / Register</h2>
+        <p>Enter your mobile number to get started.</p>
+        <form id="authForm">
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Mobile Number
+            <input type="tel" name="phone" id="authPhone" required placeholder="10 digit number" maxlength="10" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+          </label>
+          <div id="otpField" hidden style="margin-bottom: 15px;">
+             <label class="input-label" style="text-align: left; display: block;">
+               OTP
+               <input type="text" name="otp" id="authOtp" placeholder="6-digit code" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+             </label>
+          </div>
+          <button class="submit-btn" type="submit" id="authSubmit" style="width: 100%;">Request OTP</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

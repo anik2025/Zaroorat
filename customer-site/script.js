@@ -287,7 +287,42 @@ categoryGrid.addEventListener('click', event => selectCategory(event.target.clos
 categoryGrid.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectCategory(event.target.closest('.category-card')); } });
 
 function normalizeBusiness(business) { const category = String(business.category || '').toLowerCase(); return { ...business, type: category.includes('food') || category.includes('bakery') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'study' : 'service', icon: category.includes('food') ? '🍛' : category.includes('repair') ? '🔧' : category.includes('laundry') ? '🧺' : category.includes('pg') ? '🏠' : '✦', meta: business.description || business.category || '', rating: business.rating || 'New', reviews: business.reviewCount || '0', tag: business.isVerified ? 'Verified Business' : 'New Listing', filter: category.includes('food') ? 'food' : category.includes('tutor') || category.includes('pg') ? 'students' : 'services' }; }
-function renderBusinesses(list = businesses) { businessGrid.innerHTML = list.map(business => { const businessId = encodeURIComponent(String(business.id || '')); const phone = String(business.whatsapp || '').replace(/\D/g, '').replace(/^0/, '91'); return `<article class="business-card"><div class="card-image ${esc(business.type)}"><span>${esc(business.icon)}</span><span class="verified">✓ ${esc(business.tag)}</span><button class="heart" type="button" aria-label="Save ${esc(business.name)}">♡</button></div><div class="card-body"><div class="card-title"><h3>${esc(business.name)}</h3><span class="rating">★ ${esc(business.rating)} (${esc(business.reviews)})</span></div><p class="card-meta">📍 ${esc(business.area || business.city || business.state)} &nbsp; · &nbsp; ${esc(business.meta)}</p><div class="card-footer">${business.id ? `<a class="wa-link" href="enquiry.html?businessId=${businessId}">Enquire ↗</a>` : '<span class="wa-link muted-action">Enquire after approval</span>'}${phone ? `<a class="wa-link" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}</div></div></article>`; }).join(''); emptyState.hidden = list.length > 0; init3DTilt(); }
+function renderBusinesses(list = businesses) {
+  businessGrid.innerHTML = list.map(business => {
+    const businessId = encodeURIComponent(String(business.id || ''));
+    const phone = String(business.whatsapp || '').replace(/\D/g, '').replace(/^0/, '91');
+    return `<article class="business-card">
+      <div class="card-image ${esc(business.type)}">
+        <span>${esc(business.icon)}</span>
+        <span class="verified">✓ ${esc(business.tag)}</span>
+        <button class="heart" type="button" aria-label="Save ${esc(business.name)}">♡</button>
+      </div>
+      <div class="card-body">
+        <div class="card-title">
+          <h3>${esc(business.name)}</h3>
+          <span class="rating">★ ${esc(business.rating)} (${esc(business.reviews)})</span>
+        </div>
+        <p class="card-meta">📍 ${esc(business.area || business.city || business.state)} &nbsp; · &nbsp; ${esc(business.meta)}</p>
+        <div class="card-footer">
+          ${business.id ? `<button type="button" class="wa-link enquire-trigger-btn" data-id="${esc(business.id)}" data-name="${esc(business.name)}" style="background:none;border:none;cursor:pointer;font-family:inherit;font-size:inherit;padding:0;">Enquire ↗</button>` : '<span class="wa-link muted-action">Enquire after approval</span>'}
+          ${phone ? `<a class="wa-link" href="https://wa.me/${encodeURIComponent(phone)}" target="_blank" rel="noopener">WhatsApp ↗</a>` : ''}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+  emptyState.hidden = list.length > 0;
+  init3DTilt();
+
+  // Attach click listeners to all Enquire buttons
+  document.querySelectorAll('.enquire-trigger-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const bid = btn.dataset.id;
+      const bname = btn.dataset.name;
+      openEnquiryModal(bid, bname);
+    });
+  });
+}
 async function loadBusinesses() { try { const response = await fetch(`${API}/businesses?demo=true`, { headers: { 'x-demo-mode': 'true' } }); if (!response.ok) throw new Error('Businesses API error'); const result = await response.json(); businesses = Array.isArray(result.businesses) ? result.businesses.map(normalizeBusiness) : []; updateCategoryCounts(); } catch (error) { businesses = []; } renderBusinesses(); }
 loadBusinesses();
 function getFilteredBusinesses() {
@@ -304,7 +339,170 @@ function getFilteredBusinesses() {
 function search(scroll = true) { renderBusinesses(getFilteredBusinesses()); if (scroll) document.getElementById('popular').scrollIntoView({ behavior: 'smooth' }); }
 document.getElementById('searchForm').addEventListener('submit', event => { event.preventDefault(); search(); });
 document.querySelectorAll('.filter-btn').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('.filter-btn').forEach(item => item.classList.remove('active')); button.classList.add('active'); activeFilter = button.dataset.filter; search(false); }));
-const backdrop = document.getElementById('modalBackdrop');
+const authBackdrop = document.getElementById('authBackdrop');
+const authForm = document.getElementById('authForm');
+const authPhone = document.getElementById('authPhone');
+const authOtp = document.getElementById('authOtp');
+const otpField = document.getElementById('otpField');
+const authSubmit = document.getElementById('authSubmit');
+const loginBtn = document.getElementById('loginBtn');
+let currentAccessToken = localStorage.getItem('zaroorat_customer_token') || '';
+let pendingPhone = '';
+
+function openAuthModal() {
+  if (authBackdrop) authBackdrop.hidden = false;
+  if (authPhone) authPhone.focus();
+}
+
+function closeAuthModal() {
+  if (authBackdrop) authBackdrop.hidden = true;
+  if (authForm) authForm.reset();
+  if (otpField) otpField.hidden = true;
+  if (authSubmit) authSubmit.textContent = 'Request OTP';
+  pendingPhone = '';
+}
+
+if (loginBtn) {
+  loginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (currentAccessToken) {
+      if (confirm('Already signed in. Do you want to sign out?')) {
+        localStorage.removeItem('zaroorat_customer_token');
+        currentAccessToken = '';
+        loginBtn.textContent = 'Login';
+        alert('Signed out successfully.');
+      }
+    } else {
+      openAuthModal();
+    }
+  });
+}
+
+const authClose = document.getElementById('authClose');
+if (authClose) authClose.addEventListener('click', closeAuthModal);
+if (authBackdrop) authBackdrop.addEventListener('click', (e) => { if (e.target === authBackdrop) closeAuthModal(); });
+
+if (authForm) {
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (otpField.hidden) {
+      const phone = authPhone.value.replace(/\D/g, '');
+      if (!/^\d{10}$/.test(phone)) {
+        alert('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+      authSubmit.disabled = true;
+      authSubmit.textContent = 'Requesting OTP...';
+      try {
+        const res = await fetch(`${API}/auth/request-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to request OTP');
+        pendingPhone = phone;
+        otpField.hidden = false;
+        if (data.developmentOtp) {
+          authOtp.value = data.developmentOtp;
+        }
+        authSubmit.textContent = 'Verify & Login';
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        authSubmit.disabled = false;
+      }
+    } else {
+      const otp = authOtp.value.trim();
+      if (!/^\d{6}$/.test(otp)) {
+        alert('Please enter a valid 6-digit OTP.');
+        return;
+      }
+      authSubmit.disabled = true;
+      authSubmit.textContent = 'Verifying...';
+      try {
+        const res = await fetch(`${API}/auth/verify-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: pendingPhone, otp })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
+        currentAccessToken = data.accessToken;
+        localStorage.setItem('zaroorat_customer_token', currentAccessToken);
+        loginBtn.textContent = '👤 Account';
+        closeAuthModal();
+        alert('Successfully logged in!');
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        authSubmit.disabled = false;
+        authSubmit.textContent = 'Verify & Login';
+      }
+    }
+  });
+}
+
+// Enquiry Modal Logic
+const enquiryBackdrop = document.getElementById('enquiryBackdrop');
+const enquiryModalForm = document.getElementById('enquiryModalForm');
+const enquiryBusinessId = document.getElementById('enquiryBusinessId');
+const enquiryModalMsg = document.getElementById('enquiryModalMsg');
+const enquiryClose = document.getElementById('enquiryClose');
+
+function openEnquiryModal(businessId, businessName) {
+  if (enquiryBusinessId) enquiryBusinessId.value = businessId;
+  const titleEl = document.getElementById('enquiryTitle');
+  if (titleEl) titleEl.textContent = `Enquire: ${businessName}`;
+  if (enquiryModalMsg) enquiryModalMsg.textContent = '';
+  if (enquiryModalForm) enquiryModalForm.reset();
+  if (enquiryBusinessId) enquiryBusinessId.value = businessId;
+  if (enquiryBackdrop) enquiryBackdrop.hidden = false;
+}
+
+function closeEnquiryModal() {
+  if (enquiryBackdrop) enquiryBackdrop.hidden = true;
+}
+
+if (enquiryClose) enquiryClose.addEventListener('click', closeEnquiryModal);
+if (enquiryBackdrop) enquiryBackdrop.addEventListener('click', (e) => { if (e.target === enquiryBackdrop) closeEnquiryModal(); });
+
+if (enquiryModalForm) {
+  enquiryModalForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = Object.fromEntries(new FormData(enquiryModalForm).entries());
+    formData.customerPhone = formData.customerPhone.replace(/\D/g, '');
+    if (!formData.businessId) {
+      enquiryModalMsg.textContent = 'Business ID missing.';
+      enquiryModalMsg.className = 'form-message error';
+      return;
+    }
+    if (!/^\d{10}$/.test(formData.customerPhone)) {
+      enquiryModalMsg.textContent = 'Please enter a valid 10-digit phone number.';
+      enquiryModalMsg.className = 'form-message error';
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/enquiries`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send enquiry');
+      enquiryModalMsg.textContent = 'Enquiry sent successfully! Business owner will contact you soon.';
+      enquiryModalMsg.className = 'form-message success';
+      setTimeout(() => {
+        closeEnquiryModal();
+      }, 1800);
+    } catch (err) {
+      enquiryModalMsg.textContent = err.message;
+      enquiryModalMsg.className = 'form-message error';
+    }
+  });
+}
+
+// Update renderBusinesses to use openEnquiryModal instead of page redirect
 function closeModal() {
   backdrop.hidden = true;
   const modalExplore = document.getElementById('modalExplore');

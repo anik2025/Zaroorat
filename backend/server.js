@@ -124,7 +124,10 @@ function validateBusinessInput(input) {
   if (area && !(selectedCity.areas || []).includes(area)) throw validationError('Select a valid area for the selected city');
   if (!address || address.length < 5 || address.length > 300) throw validationError('Address must be 5 to 300 characters');
   if (description === null || description.length > 1000) throw validationError('Description must be at most 1000 characters');
-  return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description };
+  const products = input.products === undefined ? [] : (Array.isArray(input.products) ? input.products.map(p => text(p)).filter(Boolean) : typeof input.products === 'string' ? input.products.split(',').map(p => p.trim()).filter(Boolean) : []);
+  const pricing = input.pricing === undefined ? '' : text(input.pricing);
+  const images = input.images === undefined ? [] : (Array.isArray(input.images) ? input.images.map(i => text(i)).filter(Boolean) : typeof input.images === 'string' ? input.images.split(',').map(i => i.trim()).filter(Boolean) : []);
+  return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description, products, pricing, images };
 }
 function validateEnquiryInput(input, data) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
@@ -315,6 +318,15 @@ const server = http.createServer(async (req, res) => {
       if (input.state) business.state = text(input.state);
       if (input.city) business.city = text(input.city);
       if (input.area !== undefined) business.area = text(input.area);
+      if (input.products !== undefined) {
+        business.products = Array.isArray(input.products) ? input.products.map(p => text(p)).filter(Boolean) : typeof input.products === 'string' ? input.products.split(',').map(p => p.trim()).filter(Boolean) : [];
+      }
+      if (input.pricing !== undefined) {
+        business.pricing = text(input.pricing);
+      }
+      if (input.images !== undefined) {
+        business.images = Array.isArray(input.images) ? input.images.map(i => text(i)).filter(Boolean) : typeof input.images === 'string' ? input.images.split(',').map(i => i.trim()).filter(Boolean) : [];
+      }
 
       business.updatedAt = new Date().toISOString();
       writeData(data, req, url);

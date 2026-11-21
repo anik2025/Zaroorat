@@ -28,7 +28,7 @@
         <span>ZARO<span>ORAT</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Main navigation"><a href="#categories">Categories</a><a href="#popular">Explore Businesses</a><a href="#business">List Your Business</a></nav>
-      <a class="ghost-btn" id="loginBtn" href="login.html">Login</a>
+      <button class="ghost-btn" id="loginBtn" type="button">Login</button>
       <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
     </div>
     <div class="mobile-menu" id="mobileMenu"><a href="#categories">Categories</a><a href="#popular">Explore Businesses</a><a href="#business">List Your Business</a><a href="login.html">Login</a></div>
@@ -252,6 +252,60 @@
         <h2 id="modalTitle">Coming Soon</h2>
         <p id="modalText">This feature will be live soon. Stay tuned for ZAROORAT updates.</p>
         <button class="primary-btn" id="modalAction">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unified Auth Modal -->
+  <div class="modal-backdrop" id="authBackdrop" hidden>
+    <div class="modal" id="authModal">
+      <button class="modal-close" id="authClose">×</button>
+      <div id="authContent">
+        <div class="modal-icon">👤</div>
+        <h2 id="authTitle">Sign In / Register</h2>
+        <p>Enter your mobile number to get started.</p>
+        <form id="authForm">
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Mobile Number
+            <input type="tel" name="phone" id="authPhone" required placeholder="10 digit number" maxlength="10" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+          </label>
+          <div id="otpField" hidden style="margin-bottom: 15px;">
+             <label class="input-label" style="text-align: left; display: block;">
+               OTP
+               <input type="text" name="otp" id="authOtp" placeholder="6-digit code" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+             </label>
+          </div>
+          <button class="primary-btn" type="submit" id="authSubmit" style="width: 100%;">Request OTP</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline Enquiry Modal -->
+  <div class="modal-backdrop" id="enquiryBackdrop" hidden>
+    <div class="modal" id="enquiryModal">
+      <button class="modal-close" id="enquiryClose">×</button>
+      <div id="enquiryContent">
+        <div class="modal-icon">✉</div>
+        <h2 id="enquiryTitle">Send Enquiry</h2>
+        <p id="enquirySubtitle">The business owner will contact you directly.</p>
+        <form id="enquiryModalForm">
+          <input type="hidden" name="businessId" id="enquiryBusinessId">
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Your Name
+            <input type="text" name="customerName" id="enquiryCustomerName" required placeholder="Enter your full name" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+          </label>
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Mobile Number
+            <input type="tel" name="customerPhone" id="enquiryCustomerPhone" required placeholder="10 digit number" maxlength="10" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff;">
+          </label>
+          <label class="input-label" style="text-align: left; display: block; margin-bottom: 15px;">
+            Message
+            <textarea name="message" id="enquiryMessage" required placeholder="What specific service or product do you need?" rows="4" style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; font-family: inherit; resize: vertical;"></textarea>
+          </label>
+          <button class="primary-btn" type="submit" id="enquirySubmit" style="width: 100%;">Send Enquiry <span>→</span></button>
+        </form>
+        <div id="enquiryModalMsg" class="form-message" style="margin-top: 15px; font-size: 13px;"></div>
       </div>
     </div>
   </div>
