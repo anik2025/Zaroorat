@@ -10,6 +10,29 @@ const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'zaroorat-browser-test-'))
 const tempDataFile = path.join(tempDir, 'businesses.json');
 const tempSessionsFile = path.join(tempDir, 'sessions.json');
 
+// Seed only the isolated browser-test store so the owner-login flow exercises
+// an owner session rather than falling back to a customer session.
+fs.writeFileSync(tempDataFile, JSON.stringify({
+  businesses: [{
+    id: 'browser-owner-fixture',
+    name: 'Browser Owner Fixture',
+    category: 'Tiffin & Food',
+    ownerName: 'Browser Test Owner',
+    phone: '9876543210',
+    whatsapp: '9876543210',
+    state: 'Rajasthan',
+    city: 'Kota',
+    area: 'Talwandi',
+    address: 'Isolated browser test address',
+    status: 'approved',
+    isVerified: true,
+    ownerClaimed: true,
+    ownerVerifiedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString()
+  }],
+  enquiries: []
+}, null, 2));
+
 const env = {
   ...process.env,
   PORT: String(port),

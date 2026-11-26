@@ -274,6 +274,66 @@ document.addEventListener('DOMContentLoaded', () => {
     sameAsRegistered.checked = false;
   });
 
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    message.textContent = '';
+    message.className = 'form-message';
+
+    if (!form.reportValidity()) return;
+    const consent = document.getElementById('consent');
+    if (!consent?.checked) {
+      message.textContent = 'Please confirm that the information is accurate.';
+      message.className = 'form-message error';
+      return;
+    }
+
+    const formData = new FormData(form);
+    const splitList = value => String(value || '').split(',').map(item => item.trim()).filter(Boolean);
+    const payload = {
+      name: String(formData.get('name') || '').trim(),
+      category: String(formData.get('category') || '').trim(),
+      ownerName: String(formData.get('ownerName') || '').trim(),
+      phone: String(formData.get('phone') || '').trim(),
+      whatsapp: String(formData.get('whatsapp') || '').trim(),
+      state: String(formData.get('state') || '').trim(),
+      city: String(formData.get('city') || '').trim(),
+      area: String(formData.get('area') || '').trim(),
+      address: String(formData.get('address') || '').trim(),
+      description: String(formData.get('description') || '').trim(),
+      products: splitList(formData.get('products')),
+      pricing: String(formData.get('pricing') || '').trim(),
+      images: splitList(formData.get('images'))
+    };
+
+    button.disabled = true;
+    button.textContent = 'Submitting...';
+    try {
+      const response = await fetch(`${API}/businesses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Unable to submit the business listing.');
+      if (data.business?.id) localStorage.setItem('zaroorat_pending_claim_business_id', data.business.id);
+      form.reset();
+      categoryDropdown?.setValue('', 'Select category');
+      stateDropdown?.setValue('', 'Select State / UT');
+      cityDropdown?.setValue('', 'Select State first');
+      areaDropdown?.setValue('', 'Select City first');
+      cityDropdown?.setDisabled(true, 'Select State first');
+      areaDropdown?.setDisabled(true, 'Select City first');
+      message.textContent = 'Listing submitted for approval. Verify this business phone by signing in, then complete ownership verification from your dashboard.';
+      message.className = 'form-message success';
+    } catch (error) {
+      message.textContent = error.message || 'Unable to submit the business listing.';
+      message.className = 'form-message error';
+    } finally {
+      button.disabled = false;
+      button.innerHTML = 'Submit for Approval <span>→</span>';
+    }
+  });
+
   // Navigation handlers
   navDashboard.addEventListener('click', () => {
     navRegister.classList.remove('active');
@@ -345,6 +405,18 @@ loginForm.addEventListener('submit', async (e) => {
       currentUserPhone = phone;
       localStorage.setItem('zaroorat_owner_token', currentSessionToken);
       localStorage.setItem('zaroorat_owner_phone', currentUserPhone);
+
+      const pendingClaimId = localStorage.getItem('zaroorat_pending_claim_business_id');
+      if (pendingClaimId && data.role !== 'owner') {
+        const claimResponse = await fetch(`${API}/owner/claim`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },
+          body: JSON.stringify({ businessId: pendingClaimId })
+        });
+        const claimData = await claimResponse.json().catch(() => ({}));
+        if (!claimResponse.ok) throw new Error(claimData.error || 'Ownership verification failed');
+        localStorage.removeItem('zaroorat_pending_claim_business_id');
+      }
 
       loginForm.reset();
       otpField.hidden = true;
@@ -710,7 +782,7 @@ function openEditBusinessModal(businessId) {
             <textarea name="description" rows="3" maxlength="500">${esc(b.description || '')}</textarea>
           </label>
           <label class="input-label">Products / Services (comma separated)
-            <textarea name="products" rows="2" maxlength="500">${esc(Array.isArray(b.products) ? b.products.join(', ') : '')}</textarea>
+            <textarea name="products" rows="2" maxlength="500">${esc(Array.isArray(b.products) ? b.products.map(product => typeof product === 'object' && product !== null ? `${product.name || ''}${product.price !== undefined ? ` | ${product.price}` : ''}` : product).join(', ') : '')}</textarea>
           </label>
           <label class="input-label">Pricing Info
             <input name="pricing" value="${esc(b.pricing || '')}" maxlength="150">
@@ -745,6 +817,10 @@ function openEditBusinessModal(businessId) {
 
     const formData = Object.fromEntries(new FormData(editForm).entries());
     formData.whatsapp = formData.whatsapp ? formData.whatsapp.replace(/\D/g, '') : '';
+    formData.products = String(formData.products || '').split(',').map(item => {
+      const [name, price] = item.split('|').map(value => value.trim());
+      return price === undefined ? name : { name, price: Number(price) };
+    }).filter(item => typeof item === 'string' ? item : item.name);
     if (formData.whatsapp && !/^\d{10}$/.test(formData.whatsapp)) {
       editMsg.textContent = 'WhatsApp number must be 10 digits.';
       editMsg.className = 'form-message error';

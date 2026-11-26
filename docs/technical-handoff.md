@@ -2,7 +2,7 @@
 
 **Report scope:** Current files in `C:\Users\anikk\Documents\KotaMitra` only. This report describes implemented code, not planned functionality. No API keys, passwords, access tokens, or secret values are included.
 
-**Current implementation type:** Local development MVP. The backend uses Node.js built-in modules and local JSON persistence. It is not production-ready or deployed.
+**Current implementation type:** Local development/staging foundation. The backend uses Node.js built-in modules and local JSON persistence. It is not production-deployed or production-ready until real OTP delivery, cookie/CSRF migration, durable ownership persistence, concurrency controls, and deployment hardening are completed.
 
 ---
 
@@ -63,7 +63,12 @@ There is no generated build directory, lockfile, hosted database configuration, 
 - Dynamic Kota area loading from `/api/areas`.
 - Alphabetically ordered Kota area catalogue in `database/areas.json`.
 - Customer login page UI with mobile validation.
-- Development OTP request and verification flow.
+- Development/test OTP request and verification flow with a dependency-free mock provider.
+- Bounded OTP challenges with expiry, attempt limits, resend cooldown, hashing, and one-time consumption.
+- Configurable session expiry and explicit admin/customer/owner role checks.
+- Role-neutral customer/owner logout with server-side token revocation.
+- Exact CORS origin allowlist and opt-in trusted-proxy handling.
+- Request-size/content-type validation and safe unexpected-error responses.
 - Visible `+91` prefix on customer login, customer enquiry, and business owner phone fields.
 - Customer enquiry form and backend enquiry persistence.
 - WhatsApp links on listing cards and a WhatsApp support link on the login page. The code uses a development fallback number when a listing number is unavailable.
@@ -79,9 +84,9 @@ There is no generated build directory, lockfile, hosted database configuration, 
 
 ### Partially completed / development-only
 
-- Customer OTP works only as a development simulation. The local flow returns a fixed development OTP; it does not send an SMS.
-- Admin authentication uses an environment-overridable comparison and in-memory sessions. It is not a persistent or production identity system.
-- The admin dashboard redirects when the browser has no token, and server authorization checks that the bearer token belongs to an admin session.
+- Development/test OTP uses a controlled mock provider; no real SMS provider is called by tests. Staging dry-run uses the mock provider. Production fails closed unless a real provider adapter is explicitly configured.
+- Admin, owner, and customer authentication use bearer sessions with persisted runtime state, explicit roles/capabilities, configurable expiry, and server-side revocation.
+- The admin dashboard redirects when the browser has no token, and server authorization checks explicit admin role metadata.
 - Public listings use the local JSON store and expose approved records only, but the application is not deployed.
 - WhatsApp integration is a `wa.me` link, not an official WhatsApp Business API/chat integration.
 - The business panel is a submission form only; there is no business-owner login, profile editing, photo upload, or owner dashboard.
@@ -89,7 +94,8 @@ There is no generated build directory, lockfile, hosted database configuration, 
 
 ### Not implemented
 
-- Real SMS OTP provider.
+- Approved real SMS/OTP provider configuration for staging or production.
+- HTTP-only cookie and CSRF migration.
 - Hosted database or migrations executed against a real database.
 - Map provider, geocoding, map picker, distance calculation, or live map data.
 - Customer accounts/profile management beyond an in-memory development session token.
@@ -115,7 +121,8 @@ The server is `backend/server.js`, normally listening on port `4100` unless `POR
 | `GET` | `/api/areas` | Returns the city/area catalogue from `database/areas.json`. |
 | `GET` | `/api/businesses` | Returns approved businesses by default; supports `q` and `area` query filters. Approved responses omit `ownerName` and `phone`. |
 | `POST` | `/api/auth/request-otp` | Validates a 10-digit phone number and creates a five-minute development OTP record. |
-| `POST` | `/api/auth/verify-otp` | Verifies the phone and OTP, deletes the OTP record, and creates a development customer session. |
+| `POST` | `/api/auth/verify-otp` | Verifies a bounded OTP challenge, consumes it once, and creates an expiring role-aware session. |
+| `POST` | `/api/auth/logout` | Revokes the bearer session for customer/owner clients; repeated calls are harmless. |
 | `POST` | `/api/enquiries` | Validates customer fields, business ID format/existence/status, and message before storing an enquiry with `new` status. |
 | `POST` | `/api/businesses` | Validates business fields, category, Indian phone numbers, and Kota area before storing a submission with `pending` status. |
 
@@ -127,11 +134,11 @@ The server is `backend/server.js`, normally listening on port `4100` unless `POR
 | `PATCH` | `/api/businesses/:id` | Changes `status`, `isVerified`, and/or `isFeatured`. | Requires a token present in the in-memory session map. |
 | `POST` | `/api/admin/login` | Compares submitted credentials and creates a session token. | Public login endpoint. |
 | `POST` | `/api/admin/logout` | Deletes the bearer token from the session map. | Token-based. |
-| `GET` | `/api/admin/me` | Returns the current session record. | Requires a token present in the session map. |
+| `GET` | `/api/admin/me` | Returns safe admin metadata only. | Requires a live admin session. |
 | `GET` | `/api/enquiries` | Returns all stored enquiries. | Requires a token present in the session map. |
 | `PATCH` | `/api/enquiries/:id` | Changes enquiry status to `new`, `contacted`, or `closed`. | Requires a token present in the session map. |
 
-All JSON responses include permissive `Access-Control-Allow-Origin: *` CORS headers. `OPTIONS` is handled for preflight requests.
+CORS responses use the exact comma-separated `KOTAMITRA_ALLOWED_ORIGINS` allowlist. Approved origins receive `Vary: Origin`, restricted methods/headers, and preflight support; unapproved origins receive no CORS permission. Rate limiting uses the socket address unless `KOTAMITRA_TRUSTED_PROXY=true` explicitly enables forwarded-IP handling.
 
 ---
 
@@ -150,16 +157,16 @@ All JSON responses include permissive `Access-Control-Allow-Origin: *` CORS head
 
 ### Backend
 
-- Phone numbers are stripped to digits and must match ten digits.
-- OTP records are stored in the process-memory `customerOtps` map.
-- OTP expiry is five minutes.
-- In non-production development mode, the returned development OTP is fixed in the code path.
-- In production mode, a random value is generated, but there is no SMS provider or delivery implementation. Therefore production OTP login is incomplete.
-- Verified customer sessions are stored in the same process-memory `sessions` map as admin sessions.
+- Phone numbers are normalized to Indian ten-digit values.
+- OTP records are persisted in the runtime auth store using a hash, expiry, cooldown, and attempt counter.
+- OTP expiry, resend cooldown, maximum attempts, and development code are configurable.
+- Development/test uses the dependency-free mock provider; staging dry-run may use it explicitly; production fails closed without an approved real delivery adapter.
+- Verified sessions include explicit role/capability metadata and configurable expiry.
+- Customer and owner sessions can be revoked through `/api/auth/logout`.
 
 ### Status
 
-**Development simulation completed; real customer authentication pending.** There is no persistent user table or customer authorization middleware currently used by customer features.
+**Bounded development authentication completed; production delivery and the planned HTTP-only-cookie/CSRF migration remain pending.**
 
 ---
 
@@ -177,7 +184,7 @@ All JSON responses include permissive `Access-Control-Allow-Origin: *` CORS head
 8. Admin can approve, reject, verify, feature, or unfeature it through the PATCH endpoint.
 9. Approved records become available to the public `/api/businesses` response and can render on the customer site.
 
-There is currently no owner account, edit flow, document upload, photo upload, duplicate detection, email/SMS notification, or owner notification after approval.
+The business panel now has an owner OTP login/dashboard path, registration submission, server-side logout, and a narrowly scoped OTP-identity claim route. Ownership claim uses the business-phone OTP channel and remains separate from admin listing moderation. Document upload, photo upload, duplicate detection, email/SMS notification, and owner notification after approval remain out of scope.
 
 ### Customer enquiry
 

@@ -12,7 +12,7 @@ async function request(route, options) { const response = await fetch(`${base}${
 async function run() {
   await wait(500);
   // Register business
-  const bizResult = await request('/api/businesses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Alpha Tiffin', category: 'Tiffin & Food', ownerName: 'Test Owner', phone: '9876543210', state: 'Rajasthan', city: 'Kota', area: 'Talwandi', address: '12 Talwandi Main Road' }) });
+  const bizResult = await request('/api/businesses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Alpha Tiffin', category: 'Tiffin & Food', ownerName: 'Test Owner', phone: '9876543210', state: 'Rajasthan', city: 'Kota', area: 'Talwandi', address: '12 Talwandi Main Road', products: [{ name: 'Lunch', price: 100 }] }) });
   const businessId = bizResult.body.business.id;
   // Approve business (Admin)
   const admin = await request('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: 'order-test-admin@example.test', password: 'order-test-password' }) });
@@ -24,7 +24,7 @@ async function run() {
   const customerAuth = { Authorization: `Bearer ${verify.body.accessToken}` };
 
   // Create Order
-  const orderResult = await request('/api/orders', { method: 'POST', headers: { ...customerAuth, 'Content-Type': 'application/json' }, body: JSON.stringify({ businessId, customerName: 'Test Customer', customerPhone: '9876543222', items: [{ name: 'Lunch', price: 100 }], totalAmount: 100, deliveryAddress: 'Test Address' }) });
+  const orderResult = await request('/api/orders', { method: 'POST', headers: { ...customerAuth, 'Content-Type': 'application/json' }, body: JSON.stringify({ businessId, customerName: 'Test Customer', customerPhone: '9876543222', items: [{ name: 'Lunch', price: 100, quantity: 1 }], totalAmount: 100, deliveryAddress: 'Test Address' }) });
   if (orderResult.status !== 201) throw new Error('Order creation failed');
   const orderId = orderResult.body.order.id;
 
@@ -34,6 +34,8 @@ async function run() {
   await request('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '9876543210' }) });
   const ownerVerify = await request('/api/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '9876543210', otp: '123456' }) });
   const ownerAuth = { Authorization: `Bearer ${ownerVerify.body.accessToken}` };
+  const claim = await request('/api/owner/claim', { method: 'POST', headers: { ...ownerAuth, 'Content-Type': 'application/json' }, body: JSON.stringify({ businessId }) });
+  if (claim.status !== 200) throw new Error('Owner claim failed');
 
   // Owner Get Orders
   const ownerOrders = await request('/api/owner/orders', { headers: ownerAuth });

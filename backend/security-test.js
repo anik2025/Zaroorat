@@ -82,6 +82,32 @@ async function run() {
       throw new Error('Logged out session was not invalidated');
     }
 
+    // Test role-neutral customer logout and revocation.
+    const customerPhone = '9876543210';
+    const customerOtp = await request('/api/auth/request-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: customerPhone })
+    });
+    const customerLogin = await request('/api/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: customerPhone, otp: customerOtp.body.developmentOtp || '123456' })
+    });
+    if (customerLogin.status !== 200 || !customerLogin.body.accessToken) {
+      throw new Error('Customer login setup for logout test failed');
+    }
+    const customerToken = customerLogin.body.accessToken;
+    const customerLogout = await request('/api/auth/logout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${customerToken}` }
+    });
+    if (customerLogout.status !== 200) throw new Error('Customer logout request failed');
+    const customerAfterLogout = await request('/api/customer/orders', {
+      headers: { Authorization: `Bearer ${customerToken}` }
+    });
+    if (customerAfterLogout.status !== 401) throw new Error('Customer session was not revoked');
+
     // Test Rate Limiting on OTP request endpoint (limit is 10 per minute)
     let rateLimited = false;
     for (let i = 0; i < 12; i++) {

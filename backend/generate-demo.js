@@ -67,6 +67,11 @@ function generateMasterSeed() {
         const priceTag = `₹${199 + i * 75} onwards`;
         const description = `DEMO MARKETPLACE LISTING: Top-rated ${sub.toLowerCase()} provider located in ${area}, ${loc.city}. Verified business with professional service, open daily. Contact via phone or WhatsApp for instant bookings.`;
 
+        const demoProducts = [
+          { name: `${sub} Standard Service`, price: 150 + (i * 20) },
+          { name: `${sub} Premium Package`, price: 300 + (i * 40) }
+        ];
+
         demoBusinesses.push({
           id: crypto.randomUUID(),
           name: name,
@@ -79,6 +84,7 @@ function generateMasterSeed() {
           whatsapp: phone,
           price: priceTag,
           photo: photo,
+          products: demoProducts,
           state: loc.state,
           city: loc.city,
           area: area,

@@ -1,6 +1,11 @@
-:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--line:#e4e7f1;--ink:#151a2e;--muted:#68718b}
+:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--line:#e4e7f1;--ink:#151a2e;--muted:#68718b;--ease-out:cubic-bezier(.2,.8,.2,1);--duration-fast:160ms;--duration-base:240ms;--focus-ring:0 0 0 3px rgba(118,87,255,.22)}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 10%,#d8c7ff88,transparent 30%),radial-gradient(circle at 90% 85%,#20b8ff42,transparent 28%),var(--cloud);font-family:'Inter',sans-serif;color:var(--ink)}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 10% 10%,#d8c7ff88,transparent 30%),radial-gradient(circle at 90% 85%,#20b8ff42,transparent 28%),var(--cloud);font-family:'Inter',sans-serif;color:var(--ink);transition:background-color var(--duration-base) var(--ease-out)}
+:focus-visible{outline:2px solid var(--violet);outline-offset:3px;box-shadow:var(--focus-ring)}
+button,a,input,textarea,select{transition:color var(--duration-fast) ease,background-color var(--duration-fast) ease,border-color var(--duration-fast) ease,box-shadow var(--duration-fast) ease,transform var(--duration-fast) var(--ease-out)}
+.auth-card{animation:card-in 520ms var(--ease-out) both}
+@keyframes card-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+
 .auth-shell{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:42px 20px}
 .brand{display:flex;align-items:center;gap:11px;font:800 23px 'Plus Jakarta Sans';letter-spacing:-0.5px;color:var(--navy);text-decoration:none}
 .brand span span{color:var(--violet)}
@@ -34,4 +39,4 @@ input:focus,textarea:focus{border-color:var(--violet);box-shadow:0 0 0 4px #7657
 .back{color:var(--violet);font-size:11px;text-decoration:none;font-weight:800}
 @keyframes pop{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 @media(max-width:450px){.auth-shell{padding:28px 15px}.auth-card{padding:30px 23px;margin-top:27px}}
-@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}

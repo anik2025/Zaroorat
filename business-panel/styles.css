@@ -1,6 +1,14 @@
-:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--line:#e4e7f1;--ink:#151a2e;--muted:#68718b;--white:#fff;--shadow:0 24px 70px #11152b18}
+:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--line:#e4e7f1;--ink:#151a2e;--muted:#68718b;--white:#fff;--shadow:0 24px 70px #11152b18;--ease-out:cubic-bezier(.2,.8,.2,1);--duration-fast:160ms;--duration-base:240ms;--duration-slow:520ms;--focus-ring:0 0 0 3px rgba(32,184,255,.32)}
+
+/* Milestone 1.5 visual foundation: presentation-only tokens and motion primitives. */
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at 50% -20%, #171d35, #090d1a);background-attachment: fixed;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden}
+body{margin:0;background:radial-gradient(circle at 50% -20%, #171d35, #090d1a);background-attachment: fixed;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden;transition:background-color var(--duration-slow) var(--ease-out)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px;box-shadow:var(--focus-ring)}
+button,a,input,textarea,select{transition:color var(--duration-fast) ease,background-color var(--duration-fast) ease,border-color var(--duration-fast) ease,box-shadow var(--duration-fast) ease,transform var(--duration-fast) var(--ease-out)}
+.form-card{animation:card-in 520ms var(--ease-out) both}
+@keyframes card-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
+
 .topbar{height:76px;background:#11172be8;border-bottom:1px solid #ffffff1f;backdrop-filter:blur(18px);color:#fff;padding:0 max(24px,calc((100% - 1120px)/2));display:flex;align-items:center;justify-content:space-between}
 .topbar>a{font-size:12px;color:var(--lavender);font-weight:800;text-decoration:none}
 .brand{display:flex;align-items:center;gap:8px;font:800 21px 'Plus Jakarta Sans';letter-spacing:-1px}

@@ -45,6 +45,8 @@ async function run() {
     await request('/api/auth/request-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '9000000001' }) });
     const ownerALogin = (await request('/api/auth/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '9000000001', otp: '123456' }) })).body;
     const authOwnerA = { Authorization: `Bearer ${ownerALogin.accessToken}` };
+    const claim = await request('/api/owner/claim', { method: 'POST', headers: { ...authOwnerA, 'Content-Type': 'application/json' }, body: JSON.stringify({ businessId: b1.id }) });
+    if (claim.status !== 200 || claim.body.role !== 'owner') throw new Error('Ownership claim failed');
 
     // 3. Test: Verify ownership isolation
     const ownedBusinesses = (await request('/api/owner/businesses', { headers: authOwnerA })).body.businesses;

@@ -1,6 +1,13 @@
-:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--ink:#151a2e;--muted:#68718b;--line:#ffffff1f}
+:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--ink:#151a2e;--muted:#68718b;--line:#ffffff1f;--ease-out:cubic-bezier(.2,.8,.2,1);--duration-fast:160ms;--duration-base:240ms;--focus-ring:0 0 0 3px rgba(32,184,255,.32)}
+
+/* Milestone 1.5 visual foundation: presentation-only tokens and motion primitives. */
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at 50% -20%, #171d35, #090d1a);background-attachment:fixed;color:#fff;font-family:'Inter',sans-serif}
+body{margin:0;background:radial-gradient(circle at 50% -20%, #171d35, #090d1a);background-attachment:fixed;color:#fff;font-family:'Inter',sans-serif;transition:background-color var(--duration-base) var(--ease-out)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:3px;box-shadow:var(--focus-ring)}
+button,a,input,textarea,select{transition:color var(--duration-fast) ease,background-color var(--duration-fast) ease,border-color var(--duration-fast) ease,box-shadow var(--duration-fast) ease,transform var(--duration-fast) var(--ease-out)}
+.card{animation:card-in 520ms var(--ease-out) both}
+@keyframes card-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+
 .shell{min-height:100vh;display:flex;align-items:center;flex-direction:column;padding:55px 20px}
 .brand{display:flex;align-items:center;gap:11px;font:800 22px 'Plus Jakarta Sans';letter-spacing:-0.5px;color:#fff;text-decoration:none}
 .brand span span{color:var(--blue)}
@@ -22,3 +29,4 @@ body{margin:0;background:radial-gradient(circle at 50% -20%, #171d35, #090d1a);b
 .note{display:block;color:var(--silver);font-size:9px;line-height:1.5;margin-top:21px}
 .back{font-size:11px;color:var(--lavender);font-weight:800;text-decoration:none}
 @media(max-width:450px){.shell{padding:35px 15px}.card{padding:30px 23px;margin-top:27px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}

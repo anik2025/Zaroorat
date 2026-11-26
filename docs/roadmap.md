@@ -1,40 +1,45 @@
-# KotaMitra Roadmap
+# ZAROORAT Roadmap
 
-## Phase 1 — Customer website (current)
-- [x] Create separated project folders
-- [x] Create KotaMitra customer homepage
-- [x] Add Kota areas and priority categories
-- [x] Add responsive mobile-first design
-- [x] Add search/filter interaction with demo listings
-- [ ] Connect real database
-- [x] Add login page UI with mobile validation and WhatsApp support entry point
-- [ ] Connect OTP authentication to secure auth provider
-- [ ] Add business detail routes
-- [x] Add data-driven Kota area list with city-ready structure
-- [ ] Add map/geocoding integration after a maps provider key is configured
+## Completed foundation
 
-## Phase 2 — Business panel
-- [ ] Owner registration and login
-- [ ] Add/edit business profile
-- [ ] Upload photos and services
-- [ ] View enquiries
-- [ ] Manage offers and opening hours
+- [x] Repository and architecture audit
+- [x] Copy-only pre-flight backup verification
+- [x] Dependency-free Node.js backend and static portals
+- [x] Customer discovery, cascading locations, categories, enquiries, cart, and order history
+- [x] Business registration submission with pending moderation state
+- [x] Admin moderation and enquiry management
+- [x] Customer/owner/admin session revocation endpoint
+- [x] OTP challenge bounds for development/test and fail-closed production configuration
+- [x] Session expiry metadata and explicit role checks
+- [x] Exact CORS allowlist and opt-in trusted-proxy handling
+- [x] Request validation, monetary-value protection, size limits, and safe unexpected errors
+- [x] Regression coverage for the existing customer-to-business order workflow
 
-## Phase 3 — Admin panel
-- [ ] Admin authentication and roles
-- [ ] Approve/reject listings
-- [ ] Manage categories and areas
-- [ ] Manage users, reviews, enquiries
-- [ ] Featured listing management
+## Milestone 1 follow-up verification
 
-## Phase 4 — Monetization
-- [ ] Razorpay integration
-- [ ] Featured listings
-- [ ] Business subscription plans
-- [ ] Receipts and payment history
+- [ ] Add dedicated live-expiry tests with artificially shortened TTLs
+- [ ] Add dedicated CORS, preflight, and trusted-proxy integration tests
+- [ ] Add dedicated malformed-order and safe-error regression tests
+- [ ] Complete explicit ownership relationship persistence and claim challenge hardening
+- [ ] Complete HTTP-only cookie and CSRF migration
+- [ ] Configure an approved real OTP delivery provider for staging/production
 
-## Phase 5 — Android app
-- [ ] Reuse shared backend
-- [ ] Customer app beta
-- [ ] Business app beta
-- [ ] Play Store release
+## Milestone 1.5 — Parallel visual foundation
+
+- [ ] Design tokens and shared theme CSS
+- [ ] Version-pinned GSAP/Lenis presentation setup
+- [ ] Animated navbar, cards, modals, buttons, loaders, and reduced-motion behavior
+- [ ] Before/after visual regression baseline at desktop and mobile viewports
+
+Milestone 1.5 must not change API routes, methods, payloads, response fields, authentication contracts, backend files, or feature wiring.
+
+## Deferred platform work
+
+- [ ] Product/catalog redesign and image uploads
+- [ ] Inventory and service availability
+- [ ] Reviews, ratings, and moderation workflows
+- [ ] Hosted database and formal migrations
+- [ ] Payments, subscriptions, invoices, and commissions
+- [ ] Maps/geocoding and distance-aware discovery
+- [ ] Production deployment, monitoring, load testing, and CI/CD
+- [ ] Native mobile applications

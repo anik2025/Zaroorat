@@ -1,4 +1,29 @@
 const API = '/api';
+const CUSTOMER_TOKEN_KEY = 'zaroorat_customer_token';
+const LEGACY_CUSTOMER_TOKEN_KEY = 'kotamitra_customer_token';
+function readCustomerToken() {
+  try {
+    const canonical = localStorage.getItem(CUSTOMER_TOKEN_KEY);
+    if (canonical) return canonical;
+    const legacy = sessionStorage.getItem(LEGACY_CUSTOMER_TOKEN_KEY);
+    if (legacy) {
+      localStorage.setItem(CUSTOMER_TOKEN_KEY, legacy);
+      sessionStorage.removeItem(LEGACY_CUSTOMER_TOKEN_KEY);
+      return legacy;
+    }
+  } catch (error) {
+    // Storage may be unavailable in restrictive browser contexts.
+  }
+  return '';
+}
+function clearCustomerToken() {
+  try {
+    localStorage.removeItem(CUSTOMER_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_CUSTOMER_TOKEN_KEY);
+  } catch (error) {
+    // Ignore storage cleanup failures and keep the UI usable.
+  }
+}
 const categories = [['🛍️', 'Shopping & Retail', ''], ['🏠', 'Property: Buy/Rent/Sell', ''], ['🏘️', 'Land & Plots', ''], ['🏡', 'Houses & Flats', ''], ['🏢', 'Commercial Property', ''], ['🍱', 'Tiffin & Food', ''], ['🛌', 'PG & Hostel', ''], ['🧺', 'Laundry', ''], ['🔧', 'Repairs', ''], ['📚', 'Tutors', ''], ['✂️', 'Salon & Beauty', ''], ['🖨️', 'Printing', ''], ['🧁', 'Bakery & Cakes', ''], ['🧹', 'Cleaning', ''], ['🚚', 'Packers & Movers', ''], ['👕', 'Tailor & Boutique', ''], ['✈️', 'Travel & Tourism', ''], ['🏥', 'Healthcare', ''], ['💼', 'Jobs', ''], ['🚜', 'Agriculture', ''], ['＋', 'View all', 'Explore more']];
 let businesses = [];
 let activeFilter = 'all';
@@ -9,6 +34,7 @@ const emptyState = document.getElementById('emptyState');
 const stateSelect = document.getElementById('stateSelect');
 const citySelect = document.getElementById('citySelect');
 const areaSelect = document.getElementById('areaSelect');
+const backdrop = document.getElementById('modalBackdrop');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 const sorted = values => [...values].sort((a, b) => a.localeCompare(b));
 
@@ -247,7 +273,7 @@ async function openCategoriesModal() {
   const modal = document.getElementById('modalExplore');
   const modalContent = document.getElementById('modalContent');
   modal.classList.add('modal-wide');
-  backdrop.hidden = false;
+  if (backdrop) backdrop.hidden = false;
 
   modalContent.innerHTML = `
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
@@ -435,7 +461,7 @@ const authOtp = document.getElementById('authOtp');
 const otpField = document.getElementById('otpField');
 const authSubmit = document.getElementById('authSubmit');
 const loginBtn = document.getElementById('loginBtn');
-let currentAccessToken = localStorage.getItem('zaroorat_customer_token') || '';
+let currentAccessToken = readCustomerToken();
 let pendingPhone = '';
 
 function openAuthModal() {
@@ -452,13 +478,22 @@ function closeAuthModal() {
 }
 
 if (loginBtn) {
-  loginBtn.addEventListener('click', (e) => {
+  loginBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     if (currentAccessToken) {
       if (confirm('Already signed in. Do you want to sign out?')) {
-        localStorage.removeItem('zaroorat_customer_token');
-        currentAccessToken = '';
-        loginBtn.textContent = 'Login';
+        try {
+          await fetch(`${API}/auth/logout`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${currentAccessToken}` }
+          });
+        } catch (error) {
+          // Clear local state even if the server is unavailable.
+        } finally {
+          clearCustomerToken();
+          currentAccessToken = '';
+          loginBtn.textContent = 'Login';
+        }
         alert('Signed out successfully.');
       }
     } else {
@@ -518,7 +553,7 @@ if (authForm) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Verification failed');
         currentAccessToken = data.accessToken;
-        localStorage.setItem('zaroorat_customer_token', currentAccessToken);
+        localStorage.setItem(CUSTOMER_TOKEN_KEY, currentAccessToken);
         loginBtn.textContent = '👤 Account';
         closeAuthModal();
         alert('Successfully logged in!');
@@ -932,11 +967,14 @@ window.openCartModal = openCartModal;
 window.closeCartModal = closeCartModal;
 
 function closeModal() {
-  backdrop.hidden = true;
+  if (backdrop) backdrop.hidden = true;
   const modalExplore = document.getElementById('modalExplore');
   if (modalExplore) modalExplore.classList.remove('modal-wide');
 }
-document.getElementById('modalClose').onclick = closeModal;
-document.getElementById('modalAction').onclick = closeModal;
-backdrop.onclick = event => { if (event.target === backdrop) closeModal(); };
-document.getElementById('menuBtn').onclick = () => document.getElementById('mobileMenu').classList.toggle('open');
+const modalClose = document.getElementById('modalClose');
+const modalAction = document.getElementById('modalAction');
+const menuButton = document.getElementById('menuBtn');
+if (modalClose) modalClose.onclick = closeModal;
+if (modalAction) modalAction.onclick = closeModal;
+if (backdrop) backdrop.onclick = event => { if (event.target === backdrop) closeModal(); };
+if (menuButton) menuButton.onclick = () => document.getElementById('mobileMenu')?.classList.toggle('open');

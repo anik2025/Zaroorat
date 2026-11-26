@@ -38,3 +38,12 @@ dist/
 build/
 
 /database/data/businesses.json
+
+# Zaroorat private runtime data
+/database/backups/
+/database/data/
+/database/demo/
+
+# Local screenshots and audit reports
+/screenshots/
+/zaroorat-audit-report.html
