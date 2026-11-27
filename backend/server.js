@@ -306,8 +306,9 @@ function applyCors(req, res) {
   if (!origin) return;
   if (allowedOrigins().includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Vary', 'Origin');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-CSRF-Token');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
   }
 }
@@ -347,7 +348,53 @@ function body(req) {
     req.on('error', reject);
   });
 }
-function token(req) { const value = req.headers.authorization || ''; return value.startsWith('Bearer ') ? value.slice(7) : ''; }
+function parseCookies(req) {
+  const list = {};
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return list;
+  cookieHeader.split(';').forEach(cookie => {
+    const parts = cookie.split('=');
+    if (parts.length >= 2) {
+      const name = parts[0].trim();
+      const val = parts.slice(1).join('=').trim();
+      list[name] = decodeURIComponent(val);
+    }
+  });
+  return list;
+}
+
+function setSessionCookie(res, tokenValue, maxAgeMs = SESSION_CUSTOMER_TTL_MS) {
+  const secureFlag = (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') ? '; Secure' : '';
+  const maxAgeSec = Math.floor(maxAgeMs / 1000);
+  res.setHeader('Set-Cookie', `kotamitra_session=${tokenValue}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${maxAgeSec}${secureFlag}`);
+}
+
+function clearSessionCookie(res) {
+  const secureFlag = (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') ? '; Secure' : '';
+  res.setHeader('Set-Cookie', `kotamitra_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0${secureFlag}`);
+}
+
+function token(req) {
+  const cookies = parseCookies(req);
+  if (cookies['kotamitra_session']) return cookies['kotamitra_session'];
+  const value = req.headers.authorization || '';
+  return value.startsWith('Bearer ') ? value.slice(7) : '';
+}
+
+function validateCsrfOrOrigin(req, res) {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
+  const origin = req.headers.origin;
+  const cookies = parseCookies(req);
+  // If request uses cookie authentication for a state-changing method, validate Origin header
+  if (cookies['kotamitra_session']) {
+    if (!origin || !allowedOrigins().includes(origin)) {
+      json(res, 403, { error: 'CSRF validation failed: Invalid or missing Origin' });
+      return false;
+    }
+  }
+  return true;
+}
+
 function requireAdmin(req, res) { const session = getLiveSession(req); if (!session || session.role !== 'admin') { json(res, 401, { error: 'Admin login required' }); return false; } return true; }
 function requireOwner(req, res) { const session = getLiveSession(req); if (!session || session.role !== 'owner' || !session.phone) { json(res, 401, { error: 'Owner login required' }); return null; } return session; }
 function requireCustomer(req, res) { const session = getLiveSession(req); if (!session || !session.phone || !['customer', 'owner'].includes(session.role)) { json(res, 401, { error: 'Customer login required' }); return null; } return session; }
@@ -408,6 +455,7 @@ function resolveEnquiries(enquiries, businesses) {
 
 const server = http.createServer(async (req, res) => {
   res.__request = req;
+  if (!validateCsrfOrOrigin(req, res)) return;
   if (req.method === 'OPTIONS') {
     applyCors(req, res);
     return json(res, 204, {}, req);
@@ -536,7 +584,8 @@ const server = http.createServer(async (req, res) => {
       const session = normalizeSession({ phone, type: sessionType, createdAt: Date.now(), capabilities: claimedBusiness ? ['owner'] : ['customer'] });
       sessions.set(accessToken, session);
       saveAuthStore();
-      return json(res, 200, { accessToken, customer: { phone }, role: sessionType });
+      setSessionCookie(res, accessToken, sessionType === 'owner' ? SESSION_OWNER_TTL_MS : SESSION_CUSTOMER_TTL_MS);
+      return json(res, 200, { accessToken, customer: { phone }, role: sessionType }, req);
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/login') {
       if (!checkRateLimit(req, res, 'admin-login', 10, 60000)) return;
@@ -545,7 +594,8 @@ const server = http.createServer(async (req, res) => {
       const accessToken = crypto.randomBytes(32).toString('hex');
       sessions.set(accessToken, normalizeSession({ email: ADMIN_EMAIL, type: 'admin', createdAt: Date.now(), capabilities: ['admin'] }));
       saveAuthStore();
-      return json(res, 200, { accessToken, admin: { email: ADMIN_EMAIL } });
+      setSessionCookie(res, accessToken, SESSION_ADMIN_TTL_MS);
+      return json(res, 200, { accessToken, admin: { email: ADMIN_EMAIL } }, req);
     }
     if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
       const accessToken = token(req);
@@ -553,9 +603,15 @@ const server = http.createServer(async (req, res) => {
         sessions.delete(accessToken);
         saveAuthStore();
       }
-      return json(res, 200, { ok: true });
+      clearSessionCookie(res);
+      return json(res, 200, { ok: true }, req);
     }
-    if (req.method === 'POST' && url.pathname === '/api/admin/logout') { sessions.delete(token(req)); saveAuthStore(); return json(res, 200, { ok: true }); }
+    if (req.method === 'POST' && url.pathname === '/api/admin/logout') {
+      sessions.delete(token(req));
+      saveAuthStore();
+      clearSessionCookie(res);
+      return json(res, 200, { ok: true }, req);
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/me') { if (!requireAdmin(req, res)) return; const session = sessions.get(token(req)); return json(res, 200, { admin: { email: session.email, type: session.type } }); }
     if (req.method === 'GET' && url.pathname === '/api/enquiries') {
       if (!requireAdmin(req, res)) return;
@@ -652,7 +708,8 @@ const server = http.createServer(async (req, res) => {
       const accessToken = token(req);
       sessions.set(accessToken, refreshedSession);
       saveAuthStore();
-      return json(res, 200, { ok: true, business: { id: business.id, ownerClaimed: true, ownerVerifiedAt: business.ownerVerifiedAt }, role: 'owner' });
+      setSessionCookie(res, accessToken, SESSION_OWNER_TTL_MS);
+      return json(res, 200, { ok: true, business: { id: business.id, ownerClaimed: true, ownerVerifiedAt: business.ownerVerifiedAt }, role: 'owner' }, req);
     }
     if (req.method === 'PATCH' && url.pathname.startsWith('/api/owner/businesses/')) {
       const session = requireOwner(req, res); if (!session) return;

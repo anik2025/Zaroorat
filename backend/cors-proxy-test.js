@@ -66,7 +66,7 @@ async function testCorsAndPreflight() {
     assert(allowed.status === 200, 'Allowlisted-origin health request failed');
     assert(allowed.headers.get('access-control-allow-origin') === allowedOrigin, 'Allowlisted origin was not echoed exactly');
     assert(allowed.headers.get('vary')?.toLowerCase().includes('origin'), 'Allowed response omitted Vary: Origin');
-    assert(allowed.headers.get('access-control-allow-headers') === 'Authorization, Content-Type', 'Allowed headers were incorrect');
+    assert(allowed.headers.get('access-control-allow-headers') === 'Authorization, Content-Type, X-CSRF-Token', 'Allowed headers were incorrect');
     assert(allowed.headers.get('access-control-allow-methods') === 'GET,POST,PATCH,OPTIONS', 'Allowed methods were incorrect');
 
     const prefix = await request(serverInfo.base, '/api/health', { headers: { Origin: `${allowedOrigin}.attacker.test` } });
@@ -81,13 +81,13 @@ async function testCorsAndPreflight() {
       headers: {
         Origin: secondOrigin,
         'Access-Control-Request-Method': 'POST',
-        'Access-Control-Request-Headers': 'Authorization, Content-Type'
+        'Access-Control-Request-Headers': 'Authorization, Content-Type, X-CSRF-Token'
       }
     });
     assert(preflight.status === 204, 'Allowed preflight did not return 204');
     assert(preflight.headers.get('access-control-allow-origin') === secondOrigin, 'Preflight origin was not echoed exactly');
     assert(preflight.headers.get('access-control-allow-methods') === 'GET,POST,PATCH,OPTIONS', 'Preflight methods were incorrect');
-    assert(preflight.headers.get('access-control-allow-headers') === 'Authorization, Content-Type', 'Preflight headers were incorrect');
+    assert(preflight.headers.get('access-control-allow-headers') === 'Authorization, Content-Type, X-CSRF-Token', 'Preflight headers were incorrect');
 
     const blockedPreflight = await request(serverInfo.base, '/api/health', {
       method: 'OPTIONS',

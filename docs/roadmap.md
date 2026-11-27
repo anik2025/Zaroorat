@@ -21,7 +21,7 @@
 - [x] Add dedicated CORS, preflight, and trusted-proxy integration tests
 - [x] Add dedicated malformed-order and safe-error regression tests
 - [x] Complete explicit ownership relationship persistence and claim challenge hardening
-- [ ] Complete HTTP-only cookie and CSRF migration
+- [x] Complete HTTP-only cookie and CSRF migration
 - [ ] Configure an approved real OTP delivery provider for staging/production
 
 ## Milestone 1.5 — Parallel visual foundation

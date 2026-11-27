@@ -221,7 +221,7 @@ document.addEventListener('click', (e) => {
 let stateDropdown, cityDropdown, areaDropdown;
 async function loadLocations() {
   try {
-    const response = await fetch(`${API}/locations`, { headers: { 'x-demo-mode': 'true' } });
+    const response = await fetch(`${API}/locations`, { credentials: 'include', headers: { 'x-demo-mode': 'true' } });
     if (!response.ok) throw new Error('Locations API error');
     locations = await response.json();
     stateDropdown.setItems((locations.regions || []).map(r => ({ value: r.name, label: r.name, badge: r.type })));
@@ -284,7 +284,7 @@ async function openCategoriesModal() {
 
   try {
     if (!fullCategories.length) {
-      const response = await fetch(`${API}/categories`, { headers: { 'x-demo-mode': 'true' } });
+      const response = await fetch(`${API}/categories`, { credentials: 'include', headers: { 'x-demo-mode': 'true' } });
       if (response.ok) {
         const data = await response.json();
         fullCategories = data.categories;
@@ -438,7 +438,7 @@ function renderBusinesses(list = businesses) {
     });
   });
 }
-async function loadBusinesses() { try { const response = await fetch(`${API}/businesses?demo=true`, { headers: { 'x-demo-mode': 'true' } }); if (!response.ok) throw new Error('Businesses API error'); const result = await response.json(); businesses = Array.isArray(result.businesses) ? result.businesses.map(normalizeBusiness) : []; updateCategoryCounts(); } catch (error) { businesses = []; } renderBusinesses(); }
+async function loadBusinesses() { try { const response = await fetch(`${API}/businesses?demo=true`, { credentials: 'include', headers: { 'x-demo-mode': 'true' } }); if (!response.ok) throw new Error('Businesses API error'); const result = await response.json(); businesses = Array.isArray(result.businesses) ? result.businesses.map(normalizeBusiness) : []; updateCategoryCounts(); } catch (error) { businesses = []; } renderBusinesses(); }
 loadBusinesses();
 function getFilteredBusinesses() {
   const query = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -485,6 +485,7 @@ if (loginBtn) {
         try {
           await fetch(`${API}/auth/logout`, {
             method: 'POST',
+            credentials: 'include',
             headers: { Authorization: `Bearer ${currentAccessToken}` }
           });
         } catch (error) {
@@ -520,6 +521,7 @@ if (authForm) {
       try {
         const res = await fetch(`${API}/auth/request-otp`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone })
         });
@@ -547,6 +549,7 @@ if (authForm) {
       try {
         const res = await fetch(`${API}/auth/verify-otp`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: pendingPhone, otp })
         });
@@ -609,6 +612,7 @@ if (enquiryModalForm) {
     try {
       const res = await fetch(`${API}/enquiries`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
@@ -698,6 +702,7 @@ async function showOrderHistoryView() {
     orderHistoryList.innerHTML = '<p style="text-align:center;">Loading orders...</p>';
     try {
       const res = await fetch(`${API}/customer/orders`, {
+        credentials: 'include',
         headers: {
           'Authorization': `Bearer ${currentAccessToken}`,
           'x-demo-mode': 'true'
@@ -907,6 +912,7 @@ if (checkoutForm) {
     try {
       const res = await fetch(`${API}/orders`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentAccessToken}`,

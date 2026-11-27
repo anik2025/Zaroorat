@@ -171,7 +171,7 @@ let editCategoryDropdown, editStateDropdown, editCityDropdown, editAreaDropdown;
 
 async function loadLocations() {
   try {
-    const res = await fetch(`${API}/locations`);
+    const res = await fetch(`${API}/locations`, { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to load locations');
     const data = await res.json();
     if (data && data.regions && data.regions.length > 0) {
@@ -310,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const response = await fetch(`${API}/businesses`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -352,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
   logoutBtn.addEventListener('click', async () => {
     try {
       if (currentSessionToken) {
-        await fetch(`${API}/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${currentSessionToken}` } });
+        await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include', headers: { Authorization: `Bearer ${currentSessionToken}` } });
       }
     } catch (e) {}
     localStorage.removeItem('zaroorat_owner_token');
@@ -395,6 +396,7 @@ loginForm.addEventListener('submit', async (e) => {
     try {
       const res = await fetch(`${API}/auth/verify-otp`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, otp })
       });
@@ -410,6 +412,7 @@ loginForm.addEventListener('submit', async (e) => {
       if (pendingClaimId) {
         const claimResponse = await fetch(`${API}/owner/claim`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },
           body: JSON.stringify({ businessId: pendingClaimId })
         });
@@ -443,6 +446,7 @@ loginForm.addEventListener('submit', async (e) => {
     try {
       const res = await fetch(`${API}/auth/request-otp`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
       });
@@ -487,9 +491,9 @@ async function loadDashboardData() {
   dashboardContent.innerHTML = `<div style="text-align:center;padding:40px;color:var(--silver)">Loading your dashboard...</div>`;
   try {
     const [bizRes, enqRes, orderRes] = await Promise.all([
-      fetch(`${API}/owner/businesses`, { headers: { Authorization: `Bearer ${currentSessionToken}` } }),
-      fetch(`${API}/owner/enquiries`, { headers: { Authorization: `Bearer ${currentSessionToken}` } }),
-      fetch(`${API}/owner/orders`, { headers: { Authorization: `Bearer ${currentSessionToken}` } })
+      fetch(`${API}/owner/businesses`, { credentials: 'include', headers: { Authorization: `Bearer ${currentSessionToken}` } }),
+      fetch(`${API}/owner/enquiries`, { credentials: 'include', headers: { Authorization: `Bearer ${currentSessionToken}` } }),
+      fetch(`${API}/owner/orders`, { credentials: 'include', headers: { Authorization: `Bearer ${currentSessionToken}` } })
     ]);
 
     if (bizRes.status === 401 || enqRes.status === 401 || orderRes.status === 401) {
@@ -524,6 +528,7 @@ async function updateOrderStatus(orderId, newStatus) {
   try {
     const res = await fetch(`${API}/owner/orders/${orderId}`, {
       method: 'PATCH',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${currentSessionToken}`
@@ -731,6 +736,7 @@ async function updateEnquiryStatus(enquiryId, newStatus) {
   try {
     const res = await fetch(`${API}/owner/enquiries/${enquiryId}`, {
       method: 'PATCH',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${currentSessionToken}`
@@ -830,6 +836,7 @@ function openEditBusinessModal(businessId) {
     try {
       const res = await fetch(`${API}/owner/businesses/${businessId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${currentSessionToken}`
