@@ -17,10 +17,10 @@
 
 ## Milestone 1 follow-up verification
 
-- [ ] Add dedicated live-expiry tests with artificially shortened TTLs
-- [ ] Add dedicated CORS, preflight, and trusted-proxy integration tests
-- [ ] Add dedicated malformed-order and safe-error regression tests
-- [ ] Complete explicit ownership relationship persistence and claim challenge hardening
+- [x] Add dedicated live-expiry tests with artificially shortened TTLs
+- [x] Add dedicated CORS, preflight, and trusted-proxy integration tests
+- [x] Add dedicated malformed-order and safe-error regression tests
+- [x] Complete explicit ownership relationship persistence and claim challenge hardening
 - [ ] Complete HTTP-only cookie and CSRF migration
 - [ ] Configure an approved real OTP delivery provider for staging/production
 

@@ -634,6 +634,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { businesses });
     }
     if (req.method === 'POST' && url.pathname === '/api/owner/claim') {
+      if (!checkRateLimit(req, res, 'owner-claim', 10, 60000)) return;
       const session = requireCustomer(req, res); if (!session) return;
       const input = await body(req);
       const businessId = text(input.businessId);
@@ -644,6 +645,7 @@ const server = http.createServer(async (req, res) => {
       if (business.phone !== session.phone) return json(res, 403, { error: 'Ownership verification failed' });
       if (business.ownerClaimed === true) return json(res, 409, { error: 'Business ownership has already been claimed' });
       business.ownerClaimed = true;
+      business.ownerPhone = session.phone;
       business.ownerVerifiedAt = new Date().toISOString();
       writeData(data, req, url);
       const refreshedSession = normalizeSession({ ...session, type: 'owner', role: 'owner', capabilities: ['owner'] });

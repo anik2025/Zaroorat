@@ -77,6 +77,9 @@ npm run cors-proxy-test
 npm run owner-security-test
 npm run order-test
 npm run price-manipulation-test
+npm run malformed-order-test
+npm run cors-proxy-test
+npm run claim-hardening-test
 ```
 
 Browser/visual tests require the existing Playwright setup and are not part of `npm test` unless explicitly invoked.
