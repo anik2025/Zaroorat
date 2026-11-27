@@ -72,6 +72,7 @@ npm run credential-test
 npm run enquiry-test
 npm run validation-test
 npm run security-test
+npm run session-expiry-test
 npm run owner-security-test
 npm run order-test
 npm run price-manipulation-test
