@@ -1,4 +1,4 @@
-:root{--navy:#090d1a;--deep:#171d35;--violet:#7657ff;--blue:#20b8ff;--cyan:#00e5ff;--coral:#ff6b8a;--cloud:#f4f5fa;--silver:#a7afc5;--lavender:#d8c7ff;--line:#e4e7f1;--ink:#151a2e;--muted:#68718b;--white:#fff;--shadow:0 24px 70px #11152b18;--ease-out:cubic-bezier(.2,.8,.2,1);--duration-fast:160ms;--duration-base:240ms;--duration-slow:520ms;--focus-ring:0 0 0 3px rgba(32,184,255,.32)}
+@import "../shared/theme.css";
 
 /* Milestone 1.5 visual foundation: presentation-only tokens and motion primitives. */
 *{box-sizing:border-box}

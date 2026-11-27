@@ -26,10 +26,10 @@
 
 ## Milestone 1.5 — Parallel visual foundation
 
-- [ ] Design tokens and shared theme CSS
-- [ ] Version-pinned GSAP/Lenis presentation setup
-- [ ] Animated navbar, cards, modals, buttons, loaders, and reduced-motion behavior
-- [ ] Before/after visual regression baseline at desktop and mobile viewports
+- [x] Design tokens and shared theme CSS
+- [x] Version-pinned GSAP/Lenis presentation setup
+- [x] Animated navbar, cards, modals, buttons, loaders, and reduced-motion behavior
+- [x] Before/after visual regression baseline at desktop and mobile viewports
 
 Milestone 1.5 must not change API routes, methods, payloads, response fields, authentication contracts, backend files, or feature wiring.
 

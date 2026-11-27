@@ -1,0 +1,52 @@
+/* Milestone 1.5 Shared Design Tokens & Theme CSS */
+:root {
+  /* Colors */
+  --navy: #090d1a;
+  --deep: #171d35;
+  --violet: #7657ff;
+  --blue: #20b8ff;
+  --cyan: #00e5ff;
+  --coral: #ff6b8a;
+  --cloud: #f4f5fa;
+  --silver: #a7afc5;
+  --lavender: #d8c7ff;
+  --line: #e4e7f1;
+  --ink: #151a2e;
+  --muted: #68718b;
+  --white: #fff;
+  --red: #d54d72;
+
+  /* Spacing & Layout */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --container-max-width: 1180px;
+
+  /* Typography */
+  --font-body: 'Inter', sans-serif;
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+
+  /* Effects */
+  --shadow-base: 0 12px 35px rgba(9, 13, 26, 0.2);
+  --shadow-elevated: 0 24px 70px rgba(9, 13, 26, 0.35);
+  --shadow-panel: 0 24px 60px rgba(9, 13, 26, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  /* Motion */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 520ms;
+  --focus-ring: 0 0 0 3px rgba(32, 184, 255, 0.32);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *, *:before, *:after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
