@@ -43,6 +43,41 @@ class MockProvider {
   }
 }
 
+class RestSmsAdapter {
+  constructor() {
+    this.name = 'rest-api';
+    this.endpoint = process.env.KOTAMITRA_OTP_SMS_ENDPOINT || '';
+    this.apiKey = process.env.KOTAMITRA_OTP_API_KEY || '';
+    this.senderId = process.env.KOTAMITRA_OTP_SENDER_ID || 'KOTAMITRA';
+  }
+  async send(phone, code) {
+    if (!this.endpoint) {
+      return { delivered: false, error: 'KOTAMITRA_OTP_SMS_ENDPOINT is not configured' };
+    }
+    try {
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}`, 'X-API-Key': this.apiKey } : {})
+        },
+        body: JSON.stringify({
+          phone,
+          code,
+          senderId: this.senderId,
+          message: `Your KotaMitra verification code is ${code}. Valid for 5 minutes.`
+        })
+      });
+      if (!response.ok) {
+        return { delivered: false, error: `SMS gateway returned status ${response.status}` };
+      }
+      return { delivered: true };
+    } catch (err) {
+      return { delivered: false, error: err.message };
+    }
+  }
+}
+
 class UnconfiguredProvider {
   constructor() { this.name = 'unconfigured'; }
   async send() { return { delivered: false }; }
@@ -50,7 +85,21 @@ class UnconfiguredProvider {
 
 function getOtpProvider() {
   const environment = process.env.NODE_ENV || 'development';
-  if (environment === 'test' || environment === 'development' || (environment === 'staging' && OTP_DRY_RUN)) {
+  if ((environment === 'test' || environment === 'development' || environment === 'staging') && OTP_DRY_RUN) {
+    return new MockProvider();
+  }
+  const providerType = process.env.KOTAMITRA_OTP_PROVIDER;
+  if (providerType === 'rest-api' || providerType === 'configured') {
+    const endpoint = process.env.KOTAMITRA_OTP_SMS_ENDPOINT;
+    if (!endpoint) {
+      if (environment === 'production' || environment === 'staging') {
+        throw new Error('Configured OTP provider requires KOTAMITRA_OTP_SMS_ENDPOINT');
+      }
+      return new UnconfiguredProvider();
+    }
+    return new RestSmsAdapter();
+  }
+  if (environment === 'test' || environment === 'development') {
     return new MockProvider();
   }
   return new UnconfiguredProvider();
@@ -58,8 +107,12 @@ function getOtpProvider() {
 
 function assertOtpProviderConfiguration() {
   const environment = process.env.NODE_ENV || 'development';
-  if (environment === 'production' && process.env.KOTAMITRA_OTP_PROVIDER === 'configured') {
-    throw new Error('Production OTP provider adapter is not implemented; configure an approved adapter before enabling KOTAMITRA_OTP_PROVIDER=configured');
+  const providerType = process.env.KOTAMITRA_OTP_PROVIDER;
+  if ((environment === 'production' || environment === 'staging') && providerType && providerType !== 'mock') {
+    const endpoint = process.env.KOTAMITRA_OTP_SMS_ENDPOINT;
+    if (!endpoint) {
+      throw new Error(`Production/Staging OTP provider '${providerType}' requires KOTAMITRA_OTP_SMS_ENDPOINT`);
+    }
   }
 }
 

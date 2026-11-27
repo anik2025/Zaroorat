@@ -27,7 +27,7 @@ Existing customer-to-business order payloads and response workflows are regressi
 
 - Development/test OTP uses an explicit dependency-free mock provider and may return the controlled development OTP for deterministic local tests.
 - Staging requires `DRY_RUN=true` or `KOTAMITRA_OTP_DRY_RUN=true` to use the mock provider safely.
-- Production fails closed unless a real configured OTP delivery adapter is implemented and selected. No real provider is included in this milestone.
+- Production and staging support real configured OTP delivery via `KOTAMITRA_OTP_PROVIDER=rest-api`, `KOTAMITRA_OTP_SMS_ENDPOINT`, `KOTAMITRA_OTP_API_KEY`, and `KOTAMITRA_OTP_SENDER_ID`.
 - OTP challenges are normalized, hashed in persistence, expiring, single-use, cooldown-protected, and attempt-limited.
 - Sessions include role/type, capabilities, creation time, and expiry. Expiry is checked on every authenticated request.
 - `POST /api/auth/logout` revokes customer/owner bearer sessions. `/api/admin/logout` remains supported.
@@ -50,7 +50,10 @@ Existing customer-to-business order payloads and response workflows are regressi
 - `KOTAMITRA_OTP_RESEND_COOLDOWN_MS`
 - `KOTAMITRA_OTP_DEV_CODE` — development/test only.
 - `KOTAMITRA_OTP_DRY_RUN` or `DRY_RUN` — staging mock-delivery mode; never use for production delivery.
-- `KOTAMITRA_SESSION_CUSTOMER_TTL_MS`
+- `KOTAMITRA_OTP_PROVIDER` (`rest-api` or `mock`)
+- `KOTAMITRA_OTP_SMS_ENDPOINT` — target URL for outbound SMS OTP delivery.
+- `KOTAMITRA_OTP_API_KEY` — optional API key / Bearer token for the SMS gateway.
+- `KOTAMITRA_OTP_SENDER_ID` — sender ID header (default `KOTAMITRA`).
 - `KOTAMITRA_SESSION_OWNER_TTL_MS`
 - `KOTAMITRA_SESSION_ADMIN_TTL_MS`
 
@@ -81,6 +84,7 @@ npm run malformed-order-test
 npm run cors-proxy-test
 npm run claim-hardening-test
 npm run cookie-csrf-test
+npm run otp-provider-test
 ```
 
 Browser/visual tests require the existing Playwright setup and are not part of `npm test` unless explicitly invoked.

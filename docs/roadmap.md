@@ -22,7 +22,7 @@
 - [x] Add dedicated malformed-order and safe-error regression tests
 - [x] Complete explicit ownership relationship persistence and claim challenge hardening
 - [x] Complete HTTP-only cookie and CSRF migration
-- [ ] Configure an approved real OTP delivery provider for staging/production
+- [x] Configure an approved real OTP delivery provider for staging/production
 
 ## Milestone 1.5 — Parallel visual foundation
 
