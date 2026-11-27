@@ -19,6 +19,7 @@
     "owner-security-test": "node backend/owner-security-test.js",
     "order-test": "node backend/order-test.js",
     "price-manipulation-test": "node backend/price-manipulation-test.js",
+    "malformed-order-test": "node backend/malformed-order-test.js",
     "cors-proxy-test": "node backend/cors-proxy-test.js",
     "test": "node --check backend/server.js && node backend/smoke-test.js && node backend/credential-test.js && node backend/enquiry-test.js && node backend/validation-test.js && node backend/security-test.js && node backend/session-expiry-test.js && node backend/cors-proxy-test.js && node backend/owner-security-test.js && node backend/order-test.js && node backend/price-manipulation-test.js && node backend/phase2-test.js",
     "demo:generate": "node backend/generate-demo.js",
