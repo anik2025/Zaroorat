@@ -407,7 +407,7 @@ loginForm.addEventListener('submit', async (e) => {
       localStorage.setItem('zaroorat_owner_phone', currentUserPhone);
 
       const pendingClaimId = localStorage.getItem('zaroorat_pending_claim_business_id');
-      if (pendingClaimId && data.role !== 'owner') {
+      if (pendingClaimId) {
         const claimResponse = await fetch(`${API}/owner/claim`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },

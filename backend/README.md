@@ -38,6 +38,7 @@ Existing customer-to-business order payloads and response workflows are regressi
 - `PORT`
 - `NODE_ENV`
 - `KOTAMITRA_DATA_FILE`
+- `KOTAMITRA_DEMO_DATA_FILE` — dedicated demo data path required when demo mode is selected with a custom data file.
 - `KOTAMITRA_SESSIONS_FILE`
 - `KOTAMITRA_ADMIN_EMAIL`
 - `KOTAMITRA_ADMIN_PASSWORD`

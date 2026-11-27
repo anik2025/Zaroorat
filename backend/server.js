@@ -263,13 +263,12 @@ function isDemoMode(req, url) {
 }
 
 function getDataFilePath(req, url) {
-  if (process.env.KOTAMITRA_DATA_FILE) {
-    return process.env.KOTAMITRA_DATA_FILE;
+  if (isDemoMode(req, url)) {
+    if (process.env.KOTAMITRA_DATA_FILE && process.env.KOTAMITRA_DEMO_DATA_FILE) return process.env.KOTAMITRA_DEMO_DATA_FILE;
+    if (fs.existsSync(DEMO_FILE)) return DEMO_FILE;
+    throw new Error('Demo mode requires a dedicated demo data file');
   }
-  if (isDemoMode(req, url) && fs.existsSync(DEMO_FILE)) {
-    return DEMO_FILE;
-  }
-  return DATA_FILE;
+  return process.env.KOTAMITRA_DATA_FILE || DATA_FILE;
 }
 
 function readData(req, url) {
@@ -383,11 +382,13 @@ function validateOrderInput(input, data, session) {
     if (!Number.isFinite(unitPrice) || unitPrice < 0) unitPrice = 0;
 
     if (Array.isArray(business.products)) {
-      const found = business.products.find(p => typeof p === 'object' && p !== null && typeof p.name === 'string' && p.name.toLowerCase() === itemName.toLowerCase());
+      const found = business.products.find(p => {
+        const catalogName = typeof p === 'object' && p !== null ? p.name : p;
+        return typeof catalogName === 'string' && catalogName.toLowerCase() === itemName.toLowerCase();
+      });
       if (!found) throw validationError('Order item is not available in this business catalog');
-      if (Number.isFinite(Number(found.price)) && Number(found.price) >= 0) {
-        unitPrice = Number(found.price);
-      }
+      const catalogPrice = typeof found === 'object' && found !== null ? Number(found.price) : 0;
+      if (Number.isFinite(catalogPrice) && catalogPrice >= 0) unitPrice = catalogPrice;
     }
 
     calculatedTotal += unitPrice * qty;
@@ -709,22 +710,28 @@ const server = http.createServer(async (req, res) => {
       if (typeof input.isFeatured === 'boolean') business.isFeatured = input.isFeatured;
       business.updatedAt = new Date().toISOString(); writeData(data, req, url); return json(res, 200, { business });
     }
-    // Static file serving
+    // Static file serving is restricted to public portal directories only.
     if (req.method === 'GET') {
       let relativePath = url.pathname;
       if (relativePath === '/' || relativePath === '') relativePath = '/customer-site/index.html';
       else if (relativePath === '/business-panel' || relativePath === '/business-panel/') relativePath = '/business-panel/index.html';
       else if (relativePath === '/admin-panel' || relativePath === '/admin-panel/') relativePath = '/admin-panel/index.html';
 
-      let targetFile = path.join(ROOT, relativePath);
-      // Check if file exists in the specific directory (e.g., customer-site/...)
-      if (!fs.existsSync(targetFile)) {
-         if (fs.existsSync(path.join(ROOT, 'customer-site', relativePath))) targetFile = path.join(ROOT, 'customer-site', relativePath);
-         else if (fs.existsSync(path.join(ROOT, 'business-panel', relativePath))) targetFile = path.join(ROOT, 'business-panel', relativePath);
-         else if (fs.existsSync(path.join(ROOT, 'admin-panel', relativePath))) targetFile = path.join(ROOT, 'admin-panel', relativePath);
-      }
+      const publicRoots = [
+        path.join(ROOT, 'customer-site'),
+        path.join(ROOT, 'business-panel'),
+        path.join(ROOT, 'admin-panel')
+      ];
+      const cleanPath = relativePath.replace(/^\/+/, '');
+      const rootPublicFiles = new Set(['frontend-motion.js']);
+      const candidates = rootPublicFiles.has(cleanPath)
+        ? [path.join(ROOT, cleanPath)]
+        : relativePath.startsWith('/customer-site/') || relativePath.startsWith('/business-panel/') || relativePath.startsWith('/admin-panel/')
+          ? [path.join(ROOT, cleanPath)]
+          : publicRoots.map(root => path.join(root, cleanPath));
+      const targetFile = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
 
-      if (fs.existsSync(targetFile) && fs.statSync(targetFile).isFile()) {
+      if (targetFile) {
         const ext = path.extname(targetFile);
         const mimeTypes = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml' };
         setSecurityHeaders(res);
