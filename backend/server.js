@@ -2,11 +2,21 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const dbAdapter = require('./db');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'database', 'data');
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DEFAULT_DATA_FILE = path.join(DATA_DIR, 'businesses.json');
+const DEFAULT_DB_PATH = path.join(DATA_DIR, 'kotamitra.db');
+
+// DB backend selection: 'sqlite' (default) or 'json' (legacy fallback)
+// If KOTAMITRA_DATA_FILE is set explicitly, default to json so existing test
+// suites that only pass KOTAMITRA_DATA_FILE continue to work unchanged.
+const DB_BACKEND = process.env.KOTAMITRA_DB_BACKEND ||
+  (process.env.KOTAMITRA_DATA_FILE ? 'json' : 'sqlite');
+const DB_PATH = process.env.KOTAMITRA_DB_PATH || DEFAULT_DB_PATH;
+// Legacy JSON path (used when DB_BACKEND=json or for demo mode JSON fallback)
 const DATA_FILE = process.env.KOTAMITRA_DATA_FILE || DEFAULT_DATA_FILE;
 const AREAS_FILE = path.join(ROOT, 'database', 'areas.json');
 const LOCATIONS_FILE = path.join(ROOT, 'database', 'locations.json');
@@ -25,7 +35,10 @@ function loadAdminConfig(env = process.env) {
   return { email, password };
 }
 const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = loadAdminConfig();
+// SESSIONS_FILE is kept for json-backend compatibility only
 const SESSIONS_FILE = process.env.KOTAMITRA_SESSIONS_FILE || path.join(DATA_DIR, 'sessions.json');
+// db handle — initialised after startup dir setup below
+let db = null;
 const sessions = new Map();
 const customerOtps = new Map();
 const OTP_TTL_MS = Number(process.env.KOTAMITRA_OTP_TTL_MS || 300000);
@@ -201,6 +214,20 @@ function getLiveSession(req) {
 }
 
 function loadAuthStore() {
+  if (DB_BACKEND === 'sqlite' && db) {
+    try {
+      const { sessionsMap, otpsMap } = dbAdapter.readSessions(db);
+      const now = Date.now();
+      for (const [token, s] of sessionsMap.entries()) {
+        if (s.expiresAt > now) sessions.set(token, normalizeSession(s));
+      }
+      for (const [phone, o] of otpsMap.entries()) {
+        if (o.expiresAt > now && (o.attempts || 0) < OTP_MAX_ATTEMPTS) customerOtps.set(phone, o);
+      }
+    } catch (err) { console.error('Session load error (sqlite):', err.message); }
+    return;
+  }
+  // json fallback
   try {
     if (fs.existsSync(SESSIONS_FILE)) {
       const raw = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
@@ -226,12 +253,16 @@ function loadAuthStore() {
         }
       }
     }
-  } catch (err) {
-    console.error('Session load error');
-  }
+  } catch (err) { console.error('Session load error'); }
 }
 
 function saveAuthStore() {
+  if (DB_BACKEND === 'sqlite' && db) {
+    try { dbAdapter.writeSessions(db, sessions, customerOtps); }
+    catch (err) { console.error('Session save error (sqlite):', err.message); }
+    return;
+  }
+  // json fallback
   try {
     fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
     const sessObj = {};
@@ -241,12 +272,8 @@ function saveAuthStore() {
     const tmpFile = `${SESSIONS_FILE}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
     fs.writeFileSync(tmpFile, JSON.stringify({ sessions: sessObj, customerOtps: otpsObj }, null, 2));
     fs.renameSync(tmpFile, SESSIONS_FILE);
-  } catch (err) {
-    console.error('Session save error');
-  }
+  } catch (err) { console.error('Session save error'); }
 }
-
-loadAuthStore();
 
 // IP-based Rate Limiter Store
 const rateLimitMap = new Map();
@@ -404,6 +431,13 @@ fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, JSON.stringify({ businesses: [] }, null, 2));
 
+// Initialise the DB backend before loading sessions
+if (DB_BACKEND === 'sqlite') {
+  db = dbAdapter.initDb(DB_PATH);
+}
+
+loadAuthStore();
+
 function isDemoMode(req, url) {
   if (!req || !url) return process.env.KOTAMITRA_DEMO_MODE === 'true';
   return process.env.KOTAMITRA_DEMO_MODE === 'true' ||
@@ -421,6 +455,12 @@ function getDataFilePath(req, url) {
 }
 
 function readData(req, url) {
+  if (DB_BACKEND === 'sqlite' && db && !isDemoMode(req, url)) {
+    const data = dbAdapter.readData(db);
+    data.enquiries = data.enquiries || [];
+    return data;
+  }
+  // json fallback (also used for demo mode)
   const file = getDataFilePath(req, url);
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   data.enquiries = data.enquiries || [];
@@ -428,6 +468,11 @@ function readData(req, url) {
 }
 
 function writeData(data, req, url) {
+  if (DB_BACKEND === 'sqlite' && db && !isDemoMode(req, url)) {
+    dbAdapter.writeData(data, db);
+    return;
+  }
+  // json fallback (also used for demo mode)
   const file = getDataFilePath(req, url);
   if (file === DEFAULT_DATA_FILE && isDemoMode(req, url)) {
     throw new Error('SAFETY ABORT: Attempted to write to real data in Demo Mode!');

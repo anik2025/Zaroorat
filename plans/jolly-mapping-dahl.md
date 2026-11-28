@@ -1,63 +1,127 @@
-# Plan: Milestone 5 — Product Catalog Redesign & Image Uploads
+# Plan: Milestone 6 — Hosted Database Migration (JSON → SQLite → PostgreSQL-ready)
 
 ## Context
-Milestones 1 through 4 (backend hardening, session security, REST SMS OTP, parallel visual foundation, customer reviews & ratings, and payments/subscriptions) are fully complete and tested.
-The next major platform feature requested is **Product Catalog Redesign & Image Uploads**.
 
-### Objectives
-1. Allow business owners to manage a product and service catalog (items with title, description, price, category, stock status, and image URLs/uploads) for their business profiles.
-2. Implement secure base64/multipart image upload handling with strict validation (size limits, allowed mime types: JPEG, PNG, WebP) and safe static serving.
-3. Expose public catalog endpoints (`GET /api/businesses/:id/catalog`) and owner management endpoints (`POST /api/owner/catalog`, `PATCH /api/owner/catalog/:itemId`, `DELETE /api/owner/catalog/:itemId`).
-4. Update the customer-facing business portal (`customer-site/`) to display rich product/service catalogs with images and pricing.
-5. Update the business owner panel (`business-panel/`) to provide an intuitive catalog management interface.
-6. Add rigorous integration tests (`backend/catalog-test.js`) and wire into `npm test`.
+Milestones 1–5 are complete. The entire platform currently persists all state in a single JSON file read and written synchronously on every request via `readData()` / `writeData()` in `backend/server.js`. This is a correctness and scalability ceiling: concurrent writes are unprotected beyond the atomic rename, there are no migrations, and moving to a hosted DB requires a full replacement. The user chose this as the next milestone.
+
+**Strategy:** Introduce SQLite (via the Node.js built-in `node:sqlite` module available in Node 22.5+, or the battle-tested zero-external-dep `better-sqlite3` — see decision note below) as the initial target. The adapter is designed so PostgreSQL can be swapped in by changing the driver without touching any route logic. All 18 existing test suites must stay green.
+
+**Decision note on SQLite driver:** Node 24 ships `node:sqlite` as a stable built-in (the project already requires Node ≥ 18; tests run on Node 24). We use `node:sqlite` to remain zero-external-dependency. If `node:sqlite` is unavailable at test time, the adapter falls back to the JSON file store via an env flag `KOTAMITRA_DB_BACKEND=json` (keeping all existing tests green during transition).
 
 ---
 
 ## Scope & Architectural Strategy
 
-1. **Backend API Endpoints (`backend/server.js`)**:
-   - `GET /api/businesses/:id/catalog`: Publicly accessible list of catalog items for a business.
-   - `POST /api/owner/catalog`: Owner adds a new catalog item `{ name, description, price, category, inStock, imageUrl }`. Validates ownership and input bounds.
-   - `PATCH /api/owner/catalog/:itemId`: Owner updates an existing catalog item.
-   - `DELETE /api/owner/catalog/:itemId`: Owner removes a catalog item.
-   - `POST /api/owner/upload`: Secure file upload endpoint accepting base64 or multipart image data, storing under `database/data/uploads/` with UUID filenames, and returning a secure relative URL (`/uploads/...`).
+### 1. DB adapter layer — `backend/db.js` (new file)
 
-2. **Data Persistence (`database/data/businesses.json` / datastore)**:
-   - Store catalog items within each business object or a dedicated `data.catalogs` collection keyed by `businessId`.
-   - Ensure atomic JSON datastore persistence.
+A single module that exports:
+- `initDb(dbPath)` — opens the database, runs pending migrations, returns a `db` handle.
+- `readData(db)` — returns the same `{ businesses, enquiries, orders, reviews, subscriptions, catalog }` shape that `server.js` currently reads from JSON. This is a **compatibility shim** — it reconstructs the in-memory object the route handlers expect, keeping every route unchanged.
+- `writeData(data, db)` — accepts the same mutated object and persists changes back. Routes continue to mutate the in-memory object and call `writeData`; the adapter detects which collections changed and upserts only the dirty rows.
+- `readSessions(db)` / `writeSessions(db, sessionsMap, otpsMap)` — replaces the sessions JSON file.
 
-3. **Frontend Integration (`customer-site/` & `business-panel/`)**:
-   - `customer-site/`: Render products/services grid with images, prices, and availability badges on business detail view.
-   - `business-panel/`: Add a "Catalog & Products" management tab with add/edit/delete modals and image upload preview.
+This shim approach means **zero changes to any route handler** in `server.js`. Only the top-level wiring (`loadAuthStore`, `saveAuthStore`, `readData`, `writeData`, file path constants) is replaced.
 
-4. **Testing Suite (`backend/catalog-test.js`)**:
-   - Automated integration tests verifying catalog item creation, image upload validation, owner authorization, update/delete workflows, and public retrieval.
+### 2. Schema migrations — `database/migrations/`
+
+Plain SQL files, numbered and run in order at startup by `initDb`:
+
+| File | Contents |
+|------|----------|
+| `001_businesses.sql` | `businesses` table with all current fields as columns; JSONB-style columns (`products TEXT`, `images TEXT`) stored as JSON strings |
+| `002_sessions.sql` | `sessions` table (token PK, type, phone, email, createdAt, expiresAt, capabilities TEXT) + `customer_otps` table |
+| `003_enquiries.sql` | `enquiries` table |
+| `004_orders.sql` | `orders` table with `items TEXT` (JSON array) |
+| `005_reviews.sql` | `reviews` table |
+| `006_subscriptions.sql` | `subscriptions` table |
+| `007_catalog.sql` | `catalog_items` table with `business_id` FK |
+
+Each migration is idempotent (`CREATE TABLE IF NOT EXISTS`). A `schema_migrations` table tracks which files have been applied.
+
+### 3. Environment configuration
+
+| Env var | Default | Meaning |
+|---------|---------|---------|
+| `KOTAMITRA_DB_BACKEND` | `sqlite` | `sqlite` or `json` (json = legacy fallback) |
+| `KOTAMITRA_DB_PATH` | `database/data/kotamitra.db` | SQLite file path |
+| `KOTAMITRA_DB_URL` | _(unset)_ | Future: PostgreSQL connection string; presence overrides backend to `postgres` |
+
+Tests continue to pass `KOTAMITRA_DATA_FILE` for the `json` backend and a temp `KOTAMITRA_DB_PATH` for `sqlite` tests.
+
+### 4. `backend/server.js` changes (minimal)
+
+- Replace `readData(req, url)` / `writeData(data, req, url)` call sites with `readData(db)` / `writeData(data, db)` — the signatures change but the usage pattern at each call site is identical (read, mutate, write).
+- Replace `loadAuthStore()` / `saveAuthStore()` with `readSessions(db)` / `writeSessions(db, ...)`.
+- Remove `DATA_FILE`, `DEFAULT_DATA_FILE`, `SESSIONS_FILE` constants; replace with `DB_PATH`.
+- Keep the demo-mode guard (`isDemoMode`) — it now resolves to a separate SQLite file.
+- Add `db` as a module-level variable initialised at startup via `initDb`.
+
+### 5. Migration utility — `backend/db-migrate.js` (new file)
+
+A standalone script that:
+1. Reads the existing `database/data/businesses.json`.
+2. Opens the SQLite DB.
+3. Inserts all records into the new tables inside a single transaction.
+4. Prints a summary: N businesses, M enquiries, etc.
+
+Run with `npm run db:migrate`.
+
+### 6. Test suite — `backend/db-test.js` (new file)
+
+20 integration tests focused on the DB layer itself:
+- Schema migration runs cleanly on a fresh temp DB.
+- `initDb` is idempotent (called twice, no error, no duplicate rows).
+- Round-trip: write a business via the route, read it back, assert all fields.
+- Concurrent writes do not corrupt data (two simultaneous POSTs to `/api/businesses`).
+- Session persistence: sessions survive a server restart against the same DB file.
+- OTP records expire and are cleaned up correctly.
+- Review and subscription data survive read-modify-write cycles.
+- The `json` backend (legacy) still passes all assertions when `KOTAMITRA_DB_BACKEND=json`.
 
 ---
 
-## Files to be Created or Modified
+## Files to Create or Modify
 
-### 1. `backend/server.js` (Modify)
-- Add catalog CRUD endpoints, image upload handling, and validation logic.
+### New files
+- `backend/db.js` — adapter (initDb, readData, writeData, readSessions, writeSessions)
+- `backend/db-migrate.js` — one-shot migration utility from JSON to SQLite
+- `backend/db-test.js` — 20 DB-layer integration tests
+- `database/migrations/001_businesses.sql` through `007_catalog.sql`
 
-### 2. `backend/catalog-test.js` (Create)
-- Integration test suite for catalog management and image uploads.
-
-### 3. `package.json` (Modify)
-- Add `"catalog-test": "node backend/catalog-test.js"` and wire into `"test"`.
-
-### 4. `customer-site/` & `business-panel/` (Modify)
-- Add catalog browsing and management UI components.
-
-### 5. `docs/roadmap.md` (Modify)
-- Track progress.
+### Modified files
+- `backend/server.js` — swap `readData`/`writeData`/`loadAuthStore`/`saveAuthStore` call sites; replace file-path constants with DB config; add `initDb` at startup
+- `package.json` — add `"db-test": "node backend/db-test.js"`, `"db:migrate": "node backend/db-migrate.js"`; wire `db-test` into `"test"`
+- `docs/roadmap.md` — mark hosted database and formal migrations complete
 
 ---
 
-## Testing Strategy
+## Reused patterns
 
-1. **Automated Integration Tests (`backend/catalog-test.js`)**:
-   - Verify catalog item creation, unauthorized access blocking, image upload rejection of invalid file types, and public catalog visibility.
-2. **Full Regression Suite (`npm test`)**:
-   - Run all test suites to ensure zero regressions across all backend modules.
+- Atomic write pattern from `writeData` (`tmp + rename`) is preserved inside `db.js` for the `json` fallback backend.
+- `UUID_PATTERN`, `text()`, `normalizePhone()`, `parseTimestamp()` helpers in `server.js` are unchanged.
+- All test suites keep their existing spawn + temp-dir pattern; `db-test.js` adds `KOTAMITRA_DB_PATH` to the env overrides alongside the existing ones.
+- `db-migrate.js` reuses `readData`'s JSON parse logic directly.
+
+---
+
+## Verification
+
+```
+# 1. Syntax check
+node --check backend/server.js
+
+# 2. New DB-layer tests only
+node backend/db-test.js
+
+# 3. Full regression suite (all 19 suites must be green)
+npm test
+
+# 4. Manual migration smoke-test
+node backend/db-migrate.js
+# → prints migration summary, exits 0
+
+# 5. Server starts against SQLite
+node backend/server.js
+# → "KotaMitra backend running at http://localhost:4100"
+# → GET /api/health returns ok:true
+```
