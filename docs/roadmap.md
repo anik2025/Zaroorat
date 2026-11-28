@@ -40,6 +40,6 @@ Milestone 1.5 must not change API routes, methods, payloads, response fields, au
 - [x] Reviews, ratings, and moderation workflows
 - [x] Hosted database and formal migrations
 - [x] Payments, subscriptions, invoices, and commissions
-- [ ] Maps/geocoding and distance-aware discovery
+- [x] Maps/geocoding and distance-aware discovery
 - [x] Production deployment, monitoring, load testing, and CI/CD
 - [ ] Native mobile applications

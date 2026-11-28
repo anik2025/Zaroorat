@@ -157,6 +157,8 @@ function rowToBusiness(r) {
     ownerVerifiedAt: r.owner_verified_at || null,
     subscriptionTier: r.subscription_tier || undefined,
     subscriptionExpiresAt: r.subscription_expires_at || undefined,
+    latitude: r.latitude !== null && r.latitude !== undefined ? Number(r.latitude) : undefined,
+    longitude: r.longitude !== null && r.longitude !== undefined ? Number(r.longitude) : undefined,
     rating: r.rating === null || r.rating === undefined ? undefined : (r.rating === 'New' ? 'New' : Number(r.rating)),
     reviewCount: r.review_count || 0,
     createdAt: r.created_at,
@@ -172,8 +174,8 @@ function writeData(data, db) {
     (id, name, category, owner_name, phone, whatsapp, state, city, area, address,
      description, products, pricing, images, status, is_verified, is_featured,
      owner_claimed, owner_phone, owner_verified_at, subscription_tier,
-     subscription_expires_at, rating, review_count, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+     subscription_expires_at, rating, review_count, latitude, longitude, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   const upsertEnquiry = db.prepare(`INSERT OR REPLACE INTO enquiries
     (id, business_id, customer_name, customer_phone, message, status, created_at, updated_at)
@@ -210,7 +212,10 @@ function writeData(data, db) {
         b.ownerVerifiedAt || null, b.subscriptionTier || null,
         b.subscriptionExpiresAt || null,
         b.rating === undefined ? null : String(b.rating),
-        b.reviewCount || 0, b.createdAt, b.updatedAt || null
+        b.reviewCount || 0,
+        b.latitude !== undefined && b.latitude !== null ? Number(b.latitude) : null,
+        b.longitude !== undefined && b.longitude !== null ? Number(b.longitude) : null,
+        b.createdAt, b.updatedAt || null
       );
     }
     for (const e of (data.enquiries || [])) {

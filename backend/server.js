@@ -334,9 +334,26 @@ function findLocation(input) {
   const city = region?.cities?.find(item => item.name === input.city);
   return { region, city };
 }
+function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null || lat2 === undefined || lon2 === undefined || isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return null;
+  const toRad = x => x * Math.PI / 180;
+  const R = 6371; // Earth radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(2));
+}
 function validateBusinessInput(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
   const name = text(input.name); const category = text(input.category); const ownerName = text(input.ownerName); const address = text(input.address); const description = input.description === undefined ? '' : text(input.description);
+  const latitude = input.latitude === undefined || input.latitude === '' || input.latitude === null ? null : Number(input.latitude);
+  const longitude = input.longitude === undefined || input.longitude === '' || input.longitude === null ? null : Number(input.longitude);
+  if (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) throw validationError('Latitude must be between -90 and 90');
+  if (longitude !== null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) throw validationError('Longitude must be between -180 and 180');
+
   if (!name || name.length < 2 || name.length > 100) throw validationError('Business name must be 2 to 100 characters');
   if (!category || !VALID_CATEGORIES.has(category)) throw validationError('Select a valid business category');
   if (!ownerName || ownerName.length < 2 || ownerName.length > 100) throw validationError('Owner name must be 2 to 100 characters');
@@ -361,7 +378,7 @@ function validateBusinessInput(input) {
   });
   const pricing = input.pricing === undefined ? '' : text(input.pricing);
   const images = input.images === undefined ? [] : (Array.isArray(input.images) ? input.images.map(i => text(i)).filter(Boolean) : typeof input.images === 'string' ? input.images.split(',').map(i => i.trim()).filter(Boolean) : []);
-  return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description, products, pricing, images };
+  return { ...input, name, category, ownerName, phone, whatsapp, state, city, area, address, description, products, pricing, images, latitude, longitude };
 }
 function validateEnquiryInput(input, data) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
@@ -734,15 +751,39 @@ const server = http.createServer(async (req, res) => {
       const area = url.searchParams.get('area') || 'all';
       const cityFilter = url.searchParams.get('city') || '';
       const stateFilter = url.searchParams.get('state') || '';
-      const businesses = data.businesses.filter(b => {
+      const latParam = url.searchParams.get('lat');
+      const lngParam = url.searchParams.get('lng');
+      const radiusParam = url.searchParams.get('radius');
+      const userLat = latParam !== null && latParam !== '' ? Number(latParam) : null;
+      const userLng = lngParam !== null && lngParam !== '' ? Number(lngParam) : null;
+      const maxRadius = radiusParam !== null && radiusParam !== '' ? Number(radiusParam) : null;
+
+      let businesses = data.businesses.filter(b => {
         if (status !== 'all' && b.status !== status) return false;
         if (categoryFilter && b.category !== categoryFilter) return false;
         if (stateFilter && b.state !== stateFilter) return false;
         if (cityFilter && b.city !== cityFilter) return false;
         if (area !== 'all' && b.area !== area) return false;
         if (q && !`${b.name} ${b.category} ${b.area} ${b.city || ''} ${b.state || ''} ${b.description || ''}`.toLowerCase().includes(q)) return false;
+
+        if (userLat !== null && userLng !== null && b.latitude !== undefined && b.latitude !== null && b.longitude !== undefined && b.longitude !== null) {
+          const dist = calculateDistanceKm(userLat, userLng, b.latitude, b.longitude);
+          b.distanceKm = dist;
+          if (maxRadius !== null && dist > maxRadius) return false;
+        } else {
+          b.distanceKm = undefined;
+        }
         return true;
       });
+
+      if (userLat !== null && userLng !== null) {
+        businesses.sort((a, b) => {
+          const distA = a.distanceKm !== undefined && a.distanceKm !== null ? a.distanceKm : Infinity;
+          const distB = b.distanceKm !== undefined && b.distanceKm !== null ? b.distanceKm : Infinity;
+          return distA - distB;
+        });
+      }
+
       const publicBusinesses = status === 'approved' ? businesses.map(({ ownerName, phone, ...business }) => business) : businesses;
       return json(res, 200, { businesses: publicBusinesses });
     }
