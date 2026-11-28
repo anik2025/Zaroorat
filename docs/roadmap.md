@@ -37,7 +37,7 @@ Milestone 1.5 must not change API routes, methods, payloads, response fields, au
 
 - [ ] Product/catalog redesign and image uploads
 - [ ] Inventory and service availability
-- [ ] Reviews, ratings, and moderation workflows
+- [x] Reviews, ratings, and moderation workflows
 - [ ] Hosted database and formal migrations
 - [ ] Payments, subscriptions, invoices, and commissions
 - [ ] Maps/geocoding and distance-aware discovery

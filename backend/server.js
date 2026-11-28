@@ -303,6 +303,38 @@ function validateEnquiryInput(input, data) {
   return { businessId, customerName, customerPhone, message };
 }
 
+function validateReviewInput(input, data) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
+  const businessId = text(input.businessId);
+  const rating = Number(input.rating);
+  const comment = text(input.comment);
+
+  if (!businessId || !UUID_PATTERN.test(businessId)) throw validationError('Enter a valid business ID');
+  const business = (Array.isArray(data.businesses) ? data.businesses : []).find(item => item.id === businessId);
+  if (!business) throw validationError('Business not found');
+  if (business.status !== 'approved') throw validationError('Reviews can only be submitted for approved businesses');
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw validationError('Rating must be an integer between 1 and 5');
+  if (!comment || comment.length < 5 || comment.length > 500) throw validationError('Review comment must be 5 to 500 characters');
+
+  return { businessId, rating, comment };
+}
+
+function recalculateBusinessRating(businessId, data) {
+  const business = (data.businesses || []).find(b => b.id === businessId);
+  if (!business) return;
+  const approvedReviews = (data.reviews || []).filter(r => r.businessId === businessId && r.status === 'approved');
+  const totalReviews = approvedReviews.length;
+  if (totalReviews === 0) {
+    business.rating = 'New';
+    business.reviewCount = 0;
+  } else {
+    const sum = approvedReviews.reduce((acc, r) => acc + r.rating, 0);
+    business.rating = Number((sum / totalReviews).toFixed(1));
+    business.reviewCount = totalReviews;
+  }
+}
+
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
@@ -713,6 +745,98 @@ const server = http.createServer(async (req, res) => {
       const ownedIds = new Set((data.businesses || []).filter(b => b.phone === session.phone).map(b => b.id));
       const orders = (data.orders || []).filter(o => ownedIds.has(o.businessId));
       return json(res, 200, { orders });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/reviews') {
+      if (!checkRateLimit(req, res, 'reviews', 10, 60000)) return;
+      const session = requireCustomer(req, res);
+      if (!session) return;
+      const input = await body(req);
+      const data = readData(req, url);
+      data.reviews = data.reviews || [];
+      const reviewInput = validateReviewInput(input, data);
+
+      const existing = data.reviews.find(r => r.businessId === reviewInput.businessId && r.customerPhone === session.phone);
+      if (existing) return json(res, 409, { error: 'You have already reviewed this business' });
+
+      const review = {
+        id: crypto.randomUUID(),
+        businessId: reviewInput.businessId,
+        customerPhone: session.phone,
+        rating: reviewInput.rating,
+        comment: reviewInput.comment,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      data.reviews.push(review);
+      writeData(data, req, url);
+      return json(res, 201, { review });
+    }
+    if (req.method === 'GET' && url.pathname.match(/^\/api\/businesses\/[0-9a-fA-F-]+\/reviews$/)) {
+      const parts = url.pathname.split('/');
+      const businessId = parts[3];
+      const data = readData(req, url);
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (!business) return json(res, 404, { error: 'Business not found' });
+
+      const approvedReviews = (data.reviews || []).filter(r => r.businessId === businessId && r.status === 'approved');
+      const totalReviews = approvedReviews.length;
+      let averageRating = 0;
+      const starBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+      if (totalReviews > 0) {
+        const sum = approvedReviews.reduce((acc, r) => {
+          starBreakdown[r.rating] = (starBreakdown[r.rating] || 0) + 1;
+          return acc + r.rating;
+        }, 0);
+        averageRating = Number((sum / totalReviews).toFixed(1));
+      }
+
+      const reviews = approvedReviews
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 50)
+        .map(({ customerPhone, ...r }) => ({ ...r, customerPhoneMasked: customerPhone ? `${customerPhone.slice(0, 2)}****${customerPhone.slice(6)}` : 'Anonymous' }));
+
+      return json(res, 200, {
+        summary: {
+          averageRating: totalReviews > 0 ? averageRating : 'New',
+          totalReviews,
+          starBreakdown
+        },
+        reviews
+      });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/owner/reviews') {
+      const session = requireOwner(req, res);
+      if (!session) return;
+      const data = readData(req, url);
+      const ownedIds = new Set((data.businesses || []).filter(b => b.phone === session.phone).map(b => b.id));
+      const reviews = (data.reviews || []).filter(r => ownedIds.has(r.businessId));
+      return json(res, 200, { reviews });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/reviews') {
+      if (!requireAdmin(req, res)) return;
+      const statusFilter = url.searchParams.get('status') || 'all';
+      const data = readData(req, url);
+      const reviews = (data.reviews || []).filter(r => statusFilter === 'all' || r.status === statusFilter);
+      return json(res, 200, { reviews });
+    }
+    if (req.method === 'PATCH' && url.pathname.startsWith('/api/admin/reviews/')) {
+      if (!requireAdmin(req, res)) return;
+      const id = url.pathname.split('/').pop();
+      const input = await body(req);
+      const data = readData(req, url);
+      data.reviews = data.reviews || [];
+      const review = data.reviews.find(item => item.id === id);
+      if (!review) return json(res, 404, { error: 'Review not found' });
+      if (input.status && !['pending', 'approved', 'rejected'].includes(input.status)) {
+        return json(res, 400, { error: 'Invalid review status' });
+      }
+      if (input.status) review.status = input.status;
+      review.updatedAt = new Date().toISOString();
+      recalculateBusinessRating(review.businessId, data);
+      writeData(data, req, url);
+      return json(res, 200, { review });
     }
     if (req.method === 'PATCH' && url.pathname.startsWith('/api/owner/orders/')) {
       const session = requireOwner(req, res); if (!session) return;
