@@ -29,6 +29,7 @@
     </div>
     <nav class="nav-links" id="mainNav" hidden>
       <button id="navDashboard" class="nav-btn active">Dashboard</button>
+      <button id="navCatalog" class="nav-btn">Catalog</button>
       <button id="navRegister" class="nav-btn">Add Business</button>
     </nav>
     <a href="../customer-site/index.html">← Customer Site</a>
@@ -68,6 +69,34 @@
       </div>
       <div class="form-message" id="dashboardMessage" role="status"></div>
     </section>
+
+    <!-- Catalog Section -->
+    <section id="catalog-section" class="form-card" hidden>
+      <div class="form-heading">
+        <div>
+          <span class="eyebrow">PRODUCT CATALOG</span>
+          <h2>Catalog &amp; Products</h2>
+          <p>Add and manage the products or services you offer.</p>
+        </div>
+      </div>
+      <div id="catalog-business-selector" style="margin-bottom:20px;">
+        <label class="input-label" style="max-width:340px;">Select Business
+          <select id="catalogBizSelect" style="width:100%;padding:10px;margin-top:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;font-size:14px;outline:none;">
+            <option value="">— choose a business —</option>
+          </select>
+        </label>
+      </div>
+      <div id="catalog-content" hidden>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="margin:0;font-size:18px;font-family:'Plus Jakarta Sans';" id="catalogBizTitle"></h3>
+          <button class="submit-btn" id="addCatalogItemBtn" style="padding:10px 16px;font-size:12px;">+ Add Item</button>
+        </div>
+        <div id="catalog-items-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+      </div>
+      <div class="form-message" id="catalogMessage" role="status"></div>
+    </section>
+
+    <!-- Add / Edit Catalog Item Modal (injected dynamically) -->
 
     <!-- Registration Section (Originally main content) -->
     <section id="register-section" class="form-card" hidden>

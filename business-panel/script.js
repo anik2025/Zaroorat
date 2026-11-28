@@ -4,8 +4,10 @@ const API = '/api';
 const loginSection = document.getElementById('login-section');
 const dashboardSection = document.getElementById('dashboard-section');
 const registerSection = document.getElementById('register-section');
+const catalogSection = document.getElementById('catalog-section');
 const mainNav = document.getElementById('mainNav');
 const navDashboard = document.getElementById('navDashboard');
+const navCatalog = document.getElementById('navCatalog');
 const navRegister = document.getElementById('navRegister');
 
 // Login Form Elements
@@ -335,19 +337,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Navigation handlers
+// Navigation handlers
   navDashboard.addEventListener('click', () => {
     navRegister.classList.remove('active');
+    navCatalog.classList.remove('active');
+    navDashboard.classList.add('active');
     dashboardSection.hidden = false;
     registerSection.hidden = true;
+    catalogSection.hidden = true;
     loadDashboardData();
+  });
+
+  navCatalog.addEventListener('click', () => {
+    navDashboard.classList.remove('active');
+    navRegister.classList.remove('active');
+    navCatalog.classList.add('active');
+    dashboardSection.hidden = true;
+    registerSection.hidden = true;
+    catalogSection.hidden = false;
+    loadCatalogSection();
   });
 
   navRegister.addEventListener('click', () => {
     navRegister.classList.add('active');
     navDashboard.classList.remove('active');
+    navCatalog.classList.remove('active');
     registerSection.hidden = false;
     dashboardSection.hidden = true;
+    catalogSection.hidden = true;
   });
 
   logoutBtn.addEventListener('click', async () => {
@@ -871,3 +888,286 @@ dashboardContent.addEventListener('change', (e) => {
     updateOrderStatus(e.target.dataset.id, e.target.value);
   }
 });
+
+// ─── Catalog Management ───────────────────────────────────────────────────────
+
+let catalogBusinessId = null;
+let catalogItems = [];
+
+const catalogBizSelect = document.getElementById('catalogBizSelect');
+const catalogContent = document.getElementById('catalog-content');
+const catalogBizTitle = document.getElementById('catalogBizTitle');
+const catalogItemsGrid = document.getElementById('catalog-items-grid');
+const catalogMessage = document.getElementById('catalogMessage');
+const addCatalogItemBtn = document.getElementById('addCatalogItemBtn');
+
+function setCatalogMessage(text, type) {
+  catalogMessage.textContent = text;
+  catalogMessage.className = `form-message ${type}`;
+}
+
+function loadCatalogSection() {
+  const approved = ownerBusinesses.filter(b => b.status === 'approved');
+  catalogBizSelect.innerHTML = '<option value="">— choose a business —</option>' +
+    approved.map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+  catalogContent.hidden = true;
+  setCatalogMessage('', '');
+
+  if (approved.length === 1) {
+    catalogBizSelect.value = approved[0].id;
+    loadCatalogForBusiness(approved[0].id, approved[0].name);
+  } else if (catalogBusinessId && approved.find(b => b.id === catalogBusinessId)) {
+    catalogBizSelect.value = catalogBusinessId;
+    const biz = approved.find(b => b.id === catalogBusinessId);
+    loadCatalogForBusiness(catalogBusinessId, biz.name);
+  }
+}
+
+catalogBizSelect.addEventListener('change', () => {
+  const id = catalogBizSelect.value;
+  if (!id) { catalogContent.hidden = true; return; }
+  const biz = ownerBusinesses.find(b => b.id === id);
+  loadCatalogForBusiness(id, biz ? biz.name : id);
+});
+
+async function loadCatalogForBusiness(bizId, bizName) {
+  catalogBusinessId = bizId;
+  catalogBizTitle.textContent = bizName || bizId;
+  catalogContent.hidden = false;
+  catalogItemsGrid.innerHTML = `<div style="color:var(--silver);padding:20px;">Loading catalog…</div>`;
+  setCatalogMessage('', '');
+  try {
+    const res = await fetch(`${API}/owner/catalog?businessId=${encodeURIComponent(bizId)}`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${currentSessionToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load catalog');
+    catalogItems = data.items || [];
+    renderCatalogItems();
+  } catch (err) {
+    catalogItemsGrid.innerHTML = '';
+    setCatalogMessage('Failed to load catalog: ' + err.message, 'error');
+  }
+}
+
+function renderCatalogItems() {
+  if (catalogItems.length === 0) {
+    catalogItemsGrid.innerHTML = `
+      <div style="grid-column:1/-1;padding:40px;text-align:center;">
+        <span style="font-size:40px;display:block;margin-bottom:12px;">📦</span>
+        <p style="color:var(--silver);font-size:14px;">No catalog items yet. Add your first product or service.</p>
+      </div>`;
+    return;
+  }
+  catalogItemsGrid.innerHTML = catalogItems.map(item => {
+    const stockBg = item.inStock ? 'rgba(32,184,255,0.15)' : 'rgba(255,107,138,0.15)';
+    const stockColor = item.inStock ? 'var(--cyan)' : 'var(--coral)';
+    const stockLabel = item.inStock ? 'In Stock' : 'Out of Stock';
+    const imgHtml = item.imageUrl
+      ? `<div style="height:140px;overflow:hidden;border-radius:10px 10px 0 0;background:#0d1225;">
+           <img src="${esc(item.imageUrl)}" alt="${esc(item.name)}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
+         </div>`
+      : `<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:36px;background:rgba(255,255,255,0.03);border-radius:10px 10px 0 0;">🛍️</div>`;
+    return `
+      <div class="futuristic-card neon-border" style="display:flex;flex-direction:column;overflow:hidden;border-radius:12px;">
+        ${imgHtml}
+        <div style="padding:14px;flex:1;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <h4 style="margin:0;font-size:15px;color:#fff;line-height:1.3;">${esc(item.name)}</h4>
+            <span style="font-size:10px;font-weight:700;padding:3px 7px;border-radius:6px;background:${stockBg};color:${stockColor};white-space:nowrap;">${stockLabel}</span>
+          </div>
+          ${item.category ? `<p style="margin:0;font-size:11px;color:var(--lavender);">${esc(item.category)}</p>` : ''}
+          ${item.description ? `<p style="margin:0;font-size:12px;color:var(--silver);line-height:1.4;">${esc(item.description)}</p>` : ''}
+          <p style="margin:0;font-size:16px;font-weight:800;color:var(--cyan);">${item.price > 0 ? `₹${item.price}` : 'Free'}</p>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="submit-btn catalog-edit-btn" data-id="${esc(item.id)}" style="flex:1;padding:7px 10px;font-size:11px;background:var(--deep);border:1px solid var(--violet);">Edit</button>
+            <button class="submit-btn catalog-delete-btn" data-id="${esc(item.id)}" style="flex:1;padding:7px 10px;font-size:11px;background:rgba(255,107,138,0.12);border:1px solid var(--coral);color:var(--coral);">Delete</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+addCatalogItemBtn.addEventListener('click', () => openCatalogItemModal(null));
+
+catalogItemsGrid.addEventListener('click', e => {
+  const editBtn = e.target.closest('.catalog-edit-btn');
+  const deleteBtn = e.target.closest('.catalog-delete-btn');
+  if (editBtn) {
+    const item = catalogItems.find(i => i.id === editBtn.dataset.id);
+    if (item) openCatalogItemModal(item);
+  } else if (deleteBtn) {
+    confirmDeleteCatalogItem(deleteBtn.dataset.id);
+  }
+});
+
+async function confirmDeleteCatalogItem(itemId) {
+  const item = catalogItems.find(i => i.id === itemId);
+  if (!item) return;
+  if (!confirm(`Delete "${item.name}" from your catalog?`)) return;
+  try {
+    const res = await fetch(`${API}/owner/catalog/${itemId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${currentSessionToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to delete item');
+    catalogItems = catalogItems.filter(i => i.id !== itemId);
+    renderCatalogItems();
+    setCatalogMessage('Item deleted.', 'success');
+  } catch (err) {
+    setCatalogMessage('Delete failed: ' + err.message, 'error');
+  }
+}
+
+function openCatalogItemModal(existingItem) {
+  const isEdit = !!existingItem;
+  const title = isEdit ? 'Edit Catalog Item' : 'Add Catalog Item';
+
+  const modalHtml = `
+    <div id="catalogItemModal" style="position:fixed;inset:0;background:rgba(9,13,26,0.88);backdrop-filter:blur(8px);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+      <div class="form-card" style="width:100%;max-width:520px;position:relative;">
+        <div class="form-heading">
+          <div>
+            <span class="eyebrow">${isEdit ? 'EDIT ITEM' : 'NEW ITEM'}</span>
+            <h2>${title}</h2>
+          </div>
+          <button type="button" id="closeCatalogModal" style="background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer;">✕</button>
+        </div>
+        <form id="catalogItemForm" style="display:flex;flex-direction:column;gap:14px;">
+          <label class="input-label">Item Name *
+            <input name="name" required maxlength="150" value="${esc(existingItem?.name || '')}" placeholder="e.g. Chocolate Truffle Cake">
+          </label>
+          <label class="input-label">Description
+            <textarea name="description" rows="2" maxlength="500" placeholder="Short description…">${esc(existingItem?.description || '')}</textarea>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <label class="input-label">Price (₹)
+              <input name="price" type="number" min="0" step="0.01" value="${existingItem?.price ?? ''}" placeholder="0">
+            </label>
+            <label class="input-label">Category
+              <input name="category" maxlength="80" value="${esc(existingItem?.category || '')}" placeholder="e.g. Cakes">
+            </label>
+          </div>
+          <label class="input-label" style="display:flex;align-items:center;gap:10px;flex-direction:row;">
+            <input type="checkbox" name="inStock" id="inStockCheck" ${existingItem === null || existingItem?.inStock !== false ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--violet);">
+            <span>In Stock</span>
+          </label>
+          <label class="input-label">Image
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+              <input name="imageUrl" type="url" value="${esc(existingItem?.imageUrl || '')}" placeholder="https://… or leave blank to upload" style="margin-top:0;">
+              <div style="color:var(--silver);font-size:11px;">— or upload an image (JPEG / PNG / WebP, max 3 MB) —</div>
+              <input type="file" id="catalogImageFile" accept="image/jpeg,image/png,image/webp" style="color:var(--silver);font-size:12px;">
+              <div id="catalogImagePreview" style="display:none;margin-top:4px;">
+                <img id="catalogPreviewImg" src="" alt="Preview" style="max-height:120px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+              </div>
+            </div>
+          </label>
+          <div class="form-message" id="catalogModalMessage" role="status"></div>
+          <div class="form-actions" style="margin-top:4px;">
+            <button type="button" id="cancelCatalogModal" class="submit-btn" style="background:var(--muted);">Cancel</button>
+            <button type="submit" class="submit-btn" id="catalogModalSubmitBtn">${isEdit ? 'Save Changes 🚀' : 'Add Item 🚀'}</button>
+          </div>
+        </form>
+      </div>
+    </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  const modal = document.getElementById('catalogItemModal');
+  const form = document.getElementById('catalogItemForm');
+  const msgEl = document.getElementById('catalogModalMessage');
+  const submitBtn = document.getElementById('catalogModalSubmitBtn');
+  const fileInput = document.getElementById('catalogImageFile');
+  const preview = document.getElementById('catalogImagePreview');
+  const previewImg = document.getElementById('catalogPreviewImg');
+
+  document.getElementById('closeCatalogModal').addEventListener('click', () => modal.remove());
+  document.getElementById('cancelCatalogModal').addEventListener('click', () => modal.remove());
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) { preview.style.display = 'none'; return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewImg.src = e.target.result;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    msgEl.textContent = '';
+    msgEl.className = 'form-message';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const fd = new FormData(form);
+      let imageUrl = fd.get('imageUrl')?.trim() || '';
+
+      // If a file was selected, upload it first
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        const dataUri = await new Promise((resolve, reject) => {
+          reader.onload = ev => resolve(ev.target.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const uploadRes = await fetch(`${API}/owner/upload`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },
+          body: JSON.stringify({ data: dataUri })
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Image upload failed');
+        imageUrl = uploadData.url;
+      }
+
+      const payload = {
+        businessId: catalogBusinessId,
+        name: fd.get('name')?.trim(),
+        description: fd.get('description')?.trim() || '',
+        price: fd.get('price') === '' ? 0 : Number(fd.get('price')),
+        category: fd.get('category')?.trim() || '',
+        inStock: document.getElementById('inStockCheck').checked,
+        imageUrl
+      };
+
+      let res, data;
+      if (isEdit) {
+        res = await fetch(`${API}/owner/catalog/${existingItem.id}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        res = await fetch(`${API}/owner/catalog`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentSessionToken}` },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save item');
+
+      modal.remove();
+      await loadCatalogForBusiness(catalogBusinessId, catalogBizTitle.textContent);
+      setCatalogMessage(isEdit ? 'Item updated.' : 'Item added to catalog.', 'success');
+    } catch (err) {
+      msgEl.textContent = err.message;
+      msgEl.className = 'form-message error';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = isEdit ? 'Save Changes 🚀' : 'Add Item 🚀';
+    }
+  });
+}

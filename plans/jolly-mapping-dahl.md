@@ -1,56 +1,54 @@
-# Plan: Milestone 4 — Payments & Subscriptions Integration (Razorpay / Gateway Adapter)
+# Plan: Milestone 5 — Product Catalog Redesign & Image Uploads
 
 ## Context
-Milestones 1, 1.5, 2, and 3 (zero-dependency backend hardening, session security, REST SMS OTP, parallel visual foundation, Docker/CI/CD, and customer reviews/ratings) are fully complete and tested.
-The next major platform feature requested is **Payments and Subscriptions integration**.
+Milestones 1 through 4 (backend hardening, session security, REST SMS OTP, parallel visual foundation, customer reviews & ratings, and payments/subscriptions) are fully complete and tested.
+The next major platform feature requested is **Product Catalog Redesign & Image Uploads**.
 
 ### Objectives
-1. Enable business owners to purchase promoted/verified subscriptions (e.g. Featured Listing, Verified Badge, Priority Placement) using a secure zero-dependency payment gateway adapter pattern (Razorpay / Generic Webhook-driven Payment Gateway).
-2. Design a robust zero-dependency payment and subscription verification architecture adhering to the project's dependency-free backend constraints (using native Node.js `fetch` / `crypto` for HMAC-SHA256 signature verification).
-3. Database schema enhancements (`data.subscriptions = data.subscriptions || []` and business subscription metadata `isFeatured`, `subscriptionTier`, `subscriptionExpiresAt`).
-4. Backend API endpoints for order creation, payment verification, webhook handling, and subscription status checks.
-5. Business owner panel UI updates to purchase and manage subscriptions.
-6. Rigorous integration tests (`backend/payment-test.js`) and wiring into `npm test`.
+1. Allow business owners to manage a product and service catalog (items with title, description, price, category, stock status, and image URLs/uploads) for their business profiles.
+2. Implement secure base64/multipart image upload handling with strict validation (size limits, allowed mime types: JPEG, PNG, WebP) and safe static serving.
+3. Expose public catalog endpoints (`GET /api/businesses/:id/catalog`) and owner management endpoints (`POST /api/owner/catalog`, `PATCH /api/owner/catalog/:itemId`, `DELETE /api/owner/catalog/:itemId`).
+4. Update the customer-facing business portal (`customer-site/`) to display rich product/service catalogs with images and pricing.
+5. Update the business owner panel (`business-panel/`) to provide an intuitive catalog management interface.
+6. Add rigorous integration tests (`backend/catalog-test.js`) and wire into `npm test`.
 
 ---
 
 ## Scope & Architectural Strategy
 
-1. **Payment Gateway Adapter (`backend/server.js`)**:
-   - Implement `RazorpayAdapter` (or zero-dependency `RestPaymentAdapter`) using native Node.js `fetch` and `crypto` for order creation (`/orders` API call to gateway) and cryptographic webhook signature verification (`crypto.createHmac('sha256', secret).update(body).digest('hex')`).
-   - Support test/mock fallback mode (`KOTAMITRA_PAYMENT_DRY_RUN=true`) for deterministic local and CI testing without external gateway credentials.
+1. **Backend API Endpoints (`backend/server.js`)**:
+   - `GET /api/businesses/:id/catalog`: Publicly accessible list of catalog items for a business.
+   - `POST /api/owner/catalog`: Owner adds a new catalog item `{ name, description, price, category, inStock, imageUrl }`. Validates ownership and input bounds.
+   - `PATCH /api/owner/catalog/:itemId`: Owner updates an existing catalog item.
+   - `DELETE /api/owner/catalog/:itemId`: Owner removes a catalog item.
+   - `POST /api/owner/upload`: Secure file upload endpoint accepting base64 or multipart image data, storing under `database/data/uploads/` with UUID filenames, and returning a secure relative URL (`/uploads/...`).
 
-2. **Database Schema & Persistence**:
-   - **Subscriptions Collection**: `data.subscriptions` containing `{ id, businessId, ownerPhone, planId, amount, currency, status: 'pending'|'active'|'expired', gatewayOrderId, gatewayPaymentId, expiresAt, createdAt }`.
-   - **Business Updates**: Add `isFeatured: boolean`, `subscriptionTier: string`, `subscriptionExpiresAt: string` to business entities upon successful payment verification.
+2. **Data Persistence (`database/data/businesses.json` / datastore)**:
+   - Store catalog items within each business object or a dedicated `data.catalogs` collection keyed by `businessId`.
+   - Ensure atomic JSON datastore persistence.
 
-3. **Backend API Endpoints**:
-   - `POST /api/owner/subscriptions/create-order`: Owner initiates a subscription purchase (e.g., Featured Tier ₹999/month), generating a gateway order.
-   - `POST /api/owner/subscriptions/verify`: Verifies payment signature (or mock confirmation) and activates the subscription.
-   - `POST /api/payments/webhook`: Handles asynchronous gateway payment success webhooks with HMAC signature verification.
-   - `GET /api/owner/subscriptions`: Returns active subscriptions and purchase history for the owner.
+3. **Frontend Integration (`customer-site/` & `business-panel/`)**:
+   - `customer-site/`: Render products/services grid with images, prices, and availability badges on business detail view.
+   - `business-panel/`: Add a "Catalog & Products" management tab with add/edit/delete modals and image upload preview.
 
-4. **Business Owner Panel Integration (`business-panel/`)**:
-   - Add a "Subscriptions & Promotion" tab where owners can view plans (Basic, Featured, Verified) and initiate payment.
-
-5. **Testing Suite (`backend/payment-test.js`)**:
-   - Automated integration tests simulating order creation, signature verification, subscription activation, and mock payment flows.
+4. **Testing Suite (`backend/catalog-test.js`)**:
+   - Automated integration tests verifying catalog item creation, image upload validation, owner authorization, update/delete workflows, and public retrieval.
 
 ---
 
 ## Files to be Created or Modified
 
 ### 1. `backend/server.js` (Modify)
-- Add payment adapter, subscription validation, order creation, signature verification, and webhook handling.
+- Add catalog CRUD endpoints, image upload handling, and validation logic.
 
-### 2. `backend/payment-test.js` (Create)
-- Integration test suite for subscription purchase and signature verification.
+### 2. `backend/catalog-test.js` (Create)
+- Integration test suite for catalog management and image uploads.
 
 ### 3. `package.json` (Modify)
-- Add `"payment-test": "node backend/payment-test.js"` and wire into `"test"`.
+- Add `"catalog-test": "node backend/catalog-test.js"` and wire into `"test"`.
 
-### 4. `business-panel/` (Modify)
-- Add subscription purchase and management interface.
+### 4. `customer-site/` & `business-panel/` (Modify)
+- Add catalog browsing and management UI components.
 
 ### 5. `docs/roadmap.md` (Modify)
 - Track progress.
@@ -59,7 +57,7 @@ The next major platform feature requested is **Payments and Subscriptions integr
 
 ## Testing Strategy
 
-1. **Automated Integration Tests (`backend/payment-test.js`)**:
-   - Verify order creation, signature validation, dry-run mock flow, subscription activation, and business promotion status update.
+1. **Automated Integration Tests (`backend/catalog-test.js`)**:
+   - Verify catalog item creation, unauthorized access blocking, image upload rejection of invalid file types, and public catalog visibility.
 2. **Full Regression Suite (`npm test`)**:
-   - Ensure all 17+ test suites remain 100% green and regression-free.
+   - Run all test suites to ensure zero regressions across all backend modules.

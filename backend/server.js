@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'database', 'data');
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DEFAULT_DATA_FILE = path.join(DATA_DIR, 'businesses.json');
 const DATA_FILE = process.env.KOTAMITRA_DATA_FILE || DEFAULT_DATA_FILE;
 const AREAS_FILE = path.join(ROOT, 'database', 'areas.json');
@@ -365,6 +366,23 @@ function validateReviewInput(input, data) {
   return { businessId, rating, comment };
 }
 
+function validateCatalogItemInput(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw validationError('Request body must be a JSON object');
+  const name = text(input.name);
+  if (!name || name.length < 1 || name.length > 150) throw validationError('Item name must be 1 to 150 characters');
+  const description = input.description === undefined ? '' : text(input.description);
+  if (description === null || description.length > 500) throw validationError('Description must be at most 500 characters');
+  const price = input.price === undefined ? 0 : Number(input.price);
+  if (!Number.isFinite(price) || price < 0 || price > 10000000) throw validationError('Price must be a non-negative number up to 1,00,00,000');
+  const category = input.category === undefined ? '' : text(input.category);
+  if (category === null || category.length > 80) throw validationError('Category must be at most 80 characters');
+  const inStock = input.inStock === undefined ? true : Boolean(input.inStock);
+  const imageUrl = input.imageUrl === undefined ? '' : text(input.imageUrl);
+  if (imageUrl === null || imageUrl.length > 500) throw validationError('Image URL must be at most 500 characters');
+  if (imageUrl && !/^https?:\/\/|^\/uploads\//.test(imageUrl)) throw validationError('Image URL must start with http://, https://, or /uploads/');
+  return { name, description, price, category, inStock, imageUrl };
+}
+
 function recalculateBusinessRating(businessId, data) {
   const business = (data.businesses || []).find(b => b.id === businessId);
   if (!business) return;
@@ -381,6 +399,7 @@ function recalculateBusinessRating(businessId, data) {
 }
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
 fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, JSON.stringify({ businesses: [] }, null, 2));
@@ -453,7 +472,7 @@ function json(res, status, body, req = null) {
 function body(req) {
   return new Promise((resolve, reject) => {
     const contentType = String(req.headers['content-type'] || '').toLowerCase();
-    if (req.method !== 'GET' && req.method !== 'HEAD' && contentType && !contentType.startsWith('application/json')) {
+    if (req.method !== 'GET' && req.method !== 'HEAD' && contentType && !contentType.startsWith('application/json') && !contentType.startsWith('multipart/form-data')) {
       const error = validationError('Content-Type must be application/json');
       error.statusCode = 415;
       reject(error);
@@ -978,6 +997,147 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/payments/webhook') {
       return json(res, 200, { received: true });
     }
+    if (req.method === 'POST' && url.pathname === '/api/owner/upload') {
+      const session = requireOwner(req, res); if (!session) return;
+      // Accept multipart/form-data or application/json with base64 data
+      const contentType = String(req.headers['content-type'] || '').toLowerCase();
+      const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+      const MAX_BYTES = 3 * 1024 * 1024; // 3 MB
+
+      if (contentType.startsWith('multipart/form-data')) {
+        // Parse simple multipart body (single file field named "file")
+        const boundary = contentType.split('boundary=')[1];
+        if (!boundary) return json(res, 400, { error: 'Missing multipart boundary' });
+        const chunks = [];
+        let totalSize = 0;
+        let tooLarge = false;
+        await new Promise((resolve, reject) => {
+          req.on('data', chunk => {
+            totalSize += chunk.length;
+            if (totalSize > MAX_BYTES + 65536 && !tooLarge) { tooLarge = true; req.resume(); }
+            if (!tooLarge) chunks.push(chunk);
+          });
+          req.on('end', resolve);
+          req.on('error', reject);
+        });
+        if (tooLarge) return json(res, 413, { error: 'Image file too large (max 3 MB)' });
+        const rawBuffer = Buffer.concat(chunks);
+        const rawStr = rawBuffer.toString('binary');
+        const sep = `--${boundary}`;
+        const parts = rawStr.split(sep).slice(1, -1);
+        if (!parts.length) return json(res, 400, { error: 'No file data in multipart body' });
+        const part = parts[0];
+        const headerEnd = part.indexOf('\r\n\r\n');
+        if (headerEnd === -1) return json(res, 400, { error: 'Malformed multipart part' });
+        const headers = part.slice(0, headerEnd);
+        const bodyBinary = part.slice(headerEnd + 4, part.endsWith('\r\n') ? part.length - 2 : part.length);
+        const ctMatch = headers.match(/content-type:\s*([^\r\n]+)/i);
+        const detectedMime = ctMatch ? ctMatch[1].trim().toLowerCase() : 'application/octet-stream';
+        if (!ALLOWED_MIME.has(detectedMime)) return json(res, 400, { error: 'Only JPEG, PNG, and WebP images are allowed' });
+        const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[detectedMime];
+        const fileBuffer = Buffer.from(bodyBinary, 'binary');
+        if (fileBuffer.length > MAX_BYTES) return json(res, 413, { error: 'Image file too large (max 3 MB)' });
+        const filename = `${crypto.randomUUID()}${ext}`;
+        const destPath = path.join(UPLOADS_DIR, filename);
+        fs.writeFileSync(destPath, fileBuffer);
+        return json(res, 201, { url: `/uploads/${filename}` });
+      } else if (contentType.startsWith('application/json')) {
+        const input = await body(req);
+        const dataUri = text(input.data);
+        if (!dataUri) return json(res, 400, { error: 'Missing data field (base64 data URI expected)' });
+        const match = dataUri.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/i);
+        if (!match) return json(res, 400, { error: 'Only JPEG, PNG, and WebP images are allowed as base64 data URIs' });
+        const mimeType = match[1].toLowerCase();
+        if (!ALLOWED_MIME.has(mimeType)) return json(res, 400, { error: 'Only JPEG, PNG, and WebP images are allowed' });
+        const fileBuffer = Buffer.from(match[2], 'base64');
+        if (fileBuffer.length > MAX_BYTES) return json(res, 413, { error: 'Image file too large (max 3 MB)' });
+        const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' }[mimeType];
+        const filename = `${crypto.randomUUID()}${ext}`;
+        const destPath = path.join(UPLOADS_DIR, filename);
+        fs.writeFileSync(destPath, fileBuffer);
+        return json(res, 201, { url: `/uploads/${filename}` });
+      } else {
+        return json(res, 415, { error: 'Content-Type must be multipart/form-data or application/json' });
+      }
+    }
+    if (req.method === 'GET' && url.pathname.match(/^\/api\/businesses\/[0-9a-fA-F-]+\/catalog$/)) {
+      const businessId = url.pathname.split('/')[3];
+      const data = readData(req, url);
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (!business) return json(res, 404, { error: 'Business not found' });
+      data.catalog = data.catalog || {};
+      const items = (data.catalog[businessId] || []).filter(item => item && !item.deleted);
+      return json(res, 200, { businessId, items });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/owner/catalog') {
+      const session = requireOwner(req, res); if (!session) return;
+      const input = await body(req);
+      const businessId = text(input.businessId);
+      if (!businessId || !UUID_PATTERN.test(businessId)) return json(res, 400, { error: 'Enter a valid business ID' });
+      const data = readData(req, url);
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Business does not belong to you' });
+      let itemInput;
+      try { itemInput = validateCatalogItemInput(input); } catch (err) { return json(res, err.statusCode || 400, { error: err.message }); }
+      data.catalog = data.catalog || {};
+      data.catalog[businessId] = data.catalog[businessId] || [];
+      if (data.catalog[businessId].filter(i => !i.deleted).length >= 200) return json(res, 400, { error: 'A business can have at most 200 catalog items' });
+      const item = { id: crypto.randomUUID(), businessId, ...itemInput, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+      data.catalog[businessId].push(item);
+      writeData(data, req, url);
+      return json(res, 201, { item });
+    }
+    if (req.method === 'PATCH' && url.pathname.match(/^\/api\/owner\/catalog\/[0-9a-fA-F-]+$/)) {
+      const session = requireOwner(req, res); if (!session) return;
+      const itemId = url.pathname.split('/').pop();
+      const input = await body(req);
+      const data = readData(req, url);
+      data.catalog = data.catalog || {};
+      let foundItem = null;
+      let foundBizId = null;
+      for (const [bizId, items] of Object.entries(data.catalog)) {
+        const match = (items || []).find(i => i.id === itemId && !i.deleted);
+        if (match) { foundItem = match; foundBizId = bizId; break; }
+      }
+      if (!foundItem) return json(res, 404, { error: 'Catalog item not found' });
+      const business = (data.businesses || []).find(b => b.id === foundBizId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Item does not belong to your business' });
+      let patchInput;
+      try { patchInput = validateCatalogItemInput({ ...foundItem, ...input }); } catch (err) { return json(res, err.statusCode || 400, { error: err.message }); }
+      Object.assign(foundItem, patchInput, { updatedAt: new Date().toISOString() });
+      writeData(data, req, url);
+      return json(res, 200, { item: foundItem });
+    }
+    if (req.method === 'DELETE' && url.pathname.match(/^\/api\/owner\/catalog\/[0-9a-fA-F-]+$/)) {
+      const session = requireOwner(req, res); if (!session) return;
+      const itemId = url.pathname.split('/').pop();
+      const data = readData(req, url);
+      data.catalog = data.catalog || {};
+      let foundItem = null;
+      let foundBizId = null;
+      for (const [bizId, items] of Object.entries(data.catalog)) {
+        const match = (items || []).find(i => i.id === itemId && !i.deleted);
+        if (match) { foundItem = match; foundBizId = bizId; break; }
+      }
+      if (!foundItem) return json(res, 404, { error: 'Catalog item not found' });
+      const business = (data.businesses || []).find(b => b.id === foundBizId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Item does not belong to your business' });
+      foundItem.deleted = true;
+      foundItem.updatedAt = new Date().toISOString();
+      writeData(data, req, url);
+      return json(res, 200, { ok: true });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/owner/catalog') {
+      const session = requireOwner(req, res); if (!session) return;
+      const businessId = url.searchParams.get('businessId');
+      if (!businessId || !UUID_PATTERN.test(businessId)) return json(res, 400, { error: 'Enter a valid business ID' });
+      const data = readData(req, url);
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Business does not belong to you' });
+      data.catalog = data.catalog || {};
+      const items = (data.catalog[businessId] || []).filter(item => item && !item.deleted);
+      return json(res, 200, { businessId, items });
+    }
     if (req.method === 'POST' && url.pathname === '/api/businesses') {
       const input = await body(req); const businessInput = validateBusinessInput(input); const data = readData(req, url);
       const business = {
@@ -1080,6 +1240,19 @@ const server = http.createServer(async (req, res) => {
     }
     // Static file serving is restricted to public portal directories only.
     if (req.method === 'GET') {
+      // Serve uploaded images from /uploads/
+      if (url.pathname.startsWith('/uploads/')) {
+        const filename = path.basename(url.pathname);
+        if (!/^[0-9a-f-]+\.(jpg|png|webp)$/i.test(filename)) return json(res, 404, { error: 'Not found' });
+        const filePath = path.join(UPLOADS_DIR, filename);
+        if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return json(res, 404, { error: 'Not found' });
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes = { '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+        setSecurityHeaders(res);
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream', 'Cache-Control': 'public, max-age=31536000, immutable' });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      }
       let relativePath = url.pathname;
       if (relativePath === '/' || relativePath === '') relativePath = '/customer-site/index.html';
       else if (relativePath === '/business-panel' || relativePath === '/business-panel/') relativePath = '/business-panel/index.html';
