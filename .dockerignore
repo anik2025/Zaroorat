@@ -1,0 +1,26 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data & session databases (must use mounted volumes in production)
+database/data/*.json
+database/demo/*.json
+
+# Node modules
+node_modules/
+
+# Test output and temporary folders
+docs/screenshots/
+.claude/
+.git/
+.github/
+.gitignore
+plans/
+tmp/
+C-*
+
+# Environment files
+.env
+.env.local
+.env.production

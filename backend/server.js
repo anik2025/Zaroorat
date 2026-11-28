@@ -515,7 +515,14 @@ const server = http.createServer(async (req, res) => {
   }
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   try {
-    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true, service: 'KotaMitra backend' });
+    if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, {
+      ok: true,
+      service: 'KotaMitra backend',
+      env: process.env.NODE_ENV || 'development',
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      activeSessions: sessions.size
+    });
     if (req.method === 'GET' && url.pathname === '/api/areas') return json(res, 200, JSON.parse(fs.readFileSync(AREAS_FILE, 'utf8')));
     if (req.method === 'GET' && url.pathname === '/api/locations') return json(res, 200, loadLocations());
     if (req.method === 'GET' && url.pathname === '/api/locations/autocomplete') {
