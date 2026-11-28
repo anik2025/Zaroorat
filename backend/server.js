@@ -83,6 +83,51 @@ class UnconfiguredProvider {
   async send() { return { delivered: false }; }
 }
 
+const SUBSCRIPTION_PLANS = [
+  { id: 'plan_featured_monthly', name: 'Featured Listing', tier: 'featured', amount: 99900, currency: 'INR', interval: 'monthly', description: 'Top placement in search results and homepage spotlight.' },
+  { id: 'plan_verified_annual', name: 'Verified Trust Badge', tier: 'verified', amount: 249900, currency: 'INR', interval: 'annually', description: 'Verified trust badge and priority customer support.' }
+];
+
+const PAYMENT_DRY_RUN = process.env.KOTAMITRA_PAYMENT_DRY_RUN === 'true';
+
+async function createPaymentGatewayOrder(plan, businessId) {
+  if (PAYMENT_DRY_RUN || !process.env.KOTAMITRA_RAZORPAY_KEY_ID || !process.env.KOTAMITRA_RAZORPAY_KEY_SECRET) {
+    return { orderId: `order_mock_${crypto.randomUUID().slice(0, 12)}`, amount: plan.amount, currency: plan.currency };
+  }
+  const keyId = process.env.KOTAMITRA_RAZORPAY_KEY_ID;
+  const keySecret = process.env.KOTAMITRA_RAZORPAY_KEY_SECRET;
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+  const response = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      amount: plan.amount,
+      currency: plan.currency,
+      receipt: `rcpt_${businessId.slice(0, 8)}_${Date.now()}`
+    })
+  });
+  if (!response.ok) {
+    throw new Error(`Payment gateway error: status ${response.status}`);
+  }
+  const data = await response.json();
+  return { orderId: data.id, amount: data.amount, currency: data.currency };
+}
+
+function verifyPaymentSignature(orderId, paymentId, signature) {
+  if (PAYMENT_DRY_RUN || !process.env.KOTAMITRA_RAZORPAY_KEY_SECRET) {
+    return true;
+  }
+  const keySecret = process.env.KOTAMITRA_RAZORPAY_KEY_SECRET;
+  const generatedSignature = crypto
+    .createHmac('sha256', keySecret)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+  return generatedSignature === signature;
+}
+
 function getOtpProvider() {
   const environment = process.env.NODE_ENV || 'development';
   if ((environment === 'test' || environment === 'development' || environment === 'staging') && OTP_DRY_RUN) {
@@ -852,6 +897,86 @@ const server = http.createServer(async (req, res) => {
       order.updatedAt = new Date().toISOString();
       writeData(data, req, url);
       return json(res, 200, { order });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/subscriptions/plans') {
+      return json(res, 200, { plans: SUBSCRIPTION_PLANS });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/owner/subscriptions/create-order') {
+      const session = requireOwner(req, res); if (!session) return;
+      const input = await body(req);
+      const businessId = text(input.businessId);
+      const planId = text(input.planId);
+      if (!businessId || !UUID_PATTERN.test(businessId)) return json(res, 400, { error: 'Enter a valid business ID' });
+      const data = readData(req, url);
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (!business || business.phone !== session.phone) return json(res, 403, { error: 'Access denied: Business does not belong to you' });
+      const plan = SUBSCRIPTION_PLANS.find(p => p.id === planId);
+      if (!plan) return json(res, 400, { error: 'Invalid subscription plan ID' });
+
+      const gatewayOrder = await createPaymentGatewayOrder(plan, businessId);
+      data.subscriptions = data.subscriptions || [];
+      const subscription = {
+        id: crypto.randomUUID(),
+        businessId,
+        ownerPhone: session.phone,
+        planId: plan.id,
+        tier: plan.tier,
+        amount: plan.amount,
+        currency: plan.currency,
+        status: 'pending',
+        gatewayOrderId: gatewayOrder.orderId,
+        createdAt: new Date().toISOString()
+      };
+      data.subscriptions.push(subscription);
+      writeData(data, req, url);
+      return json(res, 201, { orderId: gatewayOrder.orderId, amount: gatewayOrder.amount, currency: gatewayOrder.currency, subscriptionId: subscription.id });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/owner/subscriptions/verify') {
+      const session = requireOwner(req, res); if (!session) return;
+      const input = await body(req);
+      const businessId = text(input.businessId);
+      const orderId = text(input.orderId);
+      const paymentId = text(input.paymentId);
+      const signature = text(input.signature);
+      if (!businessId || !orderId) return json(res, 400, { error: 'Missing businessId or orderId' });
+
+      const data = readData(req, url);
+      data.subscriptions = data.subscriptions || [];
+      const subscription = data.subscriptions.find(s => s.gatewayOrderId === orderId && s.businessId === businessId);
+      if (!subscription) return json(res, 404, { error: 'Subscription order not found' });
+
+      if (!verifyPaymentSignature(orderId, paymentId || 'pay_mock', signature || 'sig_mock')) {
+        subscription.status = 'failed';
+        writeData(data, req, url);
+        return json(res, 400, { error: 'Invalid payment signature' });
+      }
+
+      subscription.status = 'active';
+      subscription.gatewayPaymentId = paymentId || 'pay_mock';
+      subscription.activatedAt = new Date().toISOString();
+      const expiresAt = new Date(Date.now() + (subscription.tier === 'verified' ? 365 : 30) * 86400000).toISOString();
+      subscription.expiresAt = expiresAt;
+
+      const business = (data.businesses || []).find(b => b.id === businessId);
+      if (business) {
+        business.isFeatured = true;
+        business.subscriptionTier = subscription.tier;
+        business.subscriptionExpiresAt = expiresAt;
+        business.updatedAt = new Date().toISOString();
+      }
+
+      writeData(data, req, url);
+      return json(res, 200, { ok: true, subscription });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/owner/subscriptions') {
+      const session = requireOwner(req, res); if (!session) return;
+      const data = readData(req, url);
+      const ownedIds = new Set((data.businesses || []).filter(b => b.phone === session.phone).map(b => b.id));
+      const subscriptions = (data.subscriptions || []).filter(s => ownedIds.has(s.businessId));
+      return json(res, 200, { subscriptions });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/payments/webhook') {
+      return json(res, 200, { received: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/businesses') {
       const input = await body(req); const businessInput = validateBusinessInput(input); const data = readData(req, url);
