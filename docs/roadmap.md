@@ -36,7 +36,7 @@ Milestone 1.5 must not change API routes, methods, payloads, response fields, au
 ## Deferred platform work
 
 - [x] Product/catalog redesign and image uploads
-- [ ] Inventory and service availability
+- [x] Inventory and service availability
 - [x] Reviews, ratings, and moderation workflows
 - [x] Hosted database and formal migrations
 - [x] Payments, subscriptions, invoices, and commissions

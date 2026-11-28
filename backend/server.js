@@ -421,10 +421,15 @@ function validateCatalogItemInput(input) {
   const category = input.category === undefined ? '' : text(input.category);
   if (category === null || category.length > 80) throw validationError('Category must be at most 80 characters');
   const inStock = input.inStock === undefined ? true : Boolean(input.inStock);
+  const stockQuantity = input.stockQuantity === undefined ? 0 : Number(input.stockQuantity);
+  if (!Number.isInteger(stockQuantity) || stockQuantity < 0 || stockQuantity > 1000000) throw validationError('Stock quantity must be a non-negative integer');
+  const trackStock = input.trackStock === undefined ? false : Boolean(input.trackStock);
+  const lowStockThreshold = input.lowStockThreshold === undefined ? 5 : Number(input.lowStockThreshold);
+  if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0 || lowStockThreshold > 100000) throw validationError('Low stock threshold must be a non-negative integer');
   const imageUrl = input.imageUrl === undefined ? '' : text(input.imageUrl);
   if (imageUrl === null || imageUrl.length > 500) throw validationError('Image URL must be at most 500 characters');
   if (imageUrl && !/^https?:\/\/|^\/uploads\//.test(imageUrl)) throw validationError('Image URL must start with http://, https://, or /uploads/');
-  return { name, description, price, category, inStock, imageUrl };
+  return { name, description, price, category, inStock, stockQuantity, trackStock, lowStockThreshold, imageUrl };
 }
 
 function recalculateBusinessRating(businessId, data) {
@@ -639,8 +644,10 @@ function validateOrderInput(input, data, session) {
     let unitPrice = Number(item.price === undefined ? 0 : item.price);
     if (!Number.isFinite(unitPrice) || unitPrice < 0) unitPrice = 0;
 
-    if (Array.isArray(business.products)) {
-      const found = business.products.find(p => {
+    if (Array.isArray(business.products) || (data.catalog && data.catalog[businessId])) {
+      const bizProducts = Array.isArray(business.products) ? business.products : [];
+      const catalogItems = (data.catalog && data.catalog[businessId]) ? data.catalog[businessId] : [];
+      const found = [...bizProducts, ...catalogItems].find(p => {
         const catalogName = typeof p === 'object' && p !== null ? p.name : p;
         return typeof catalogName === 'string' && catalogName.toLowerCase() === itemName.toLowerCase();
       });
@@ -879,7 +886,33 @@ const server = http.createServer(async (req, res) => {
       const session = requireCustomer(req, res);
       if (!session) return;
       const input = await body(req); const data = readData(req, url); data.orders = data.orders || [];
-      const orderInput = validateOrderInput(input, data, session);
+      let orderInput;
+      try {
+        orderInput = validateOrderInput(input, data, session);
+      } catch (err) {
+        return json(res, err.statusCode || 400, { error: err.message });
+      }
+
+      data.catalog = data.catalog || {};
+      const bizCatalog = data.catalog[orderInput.businessId] || [];
+      for (const orderedItem of orderInput.items) {
+        const catalogItem = bizCatalog.find(ci => !ci.deleted && ci.name.toLowerCase() === orderedItem.name.toLowerCase());
+        if (catalogItem && catalogItem.trackStock) {
+          if (catalogItem.stockQuantity < orderedItem.quantity) {
+            return json(res, 400, { error: `Item '${catalogItem.name}' is out of stock (available: ${catalogItem.stockQuantity})` });
+          }
+        }
+      }
+
+      for (const orderedItem of orderInput.items) {
+        const catalogItem = bizCatalog.find(ci => !ci.deleted && ci.name.toLowerCase() === orderedItem.name.toLowerCase());
+        if (catalogItem && catalogItem.trackStock) {
+          catalogItem.stockQuantity = Math.max(0, catalogItem.stockQuantity - orderedItem.quantity);
+          if (catalogItem.stockQuantity === 0) catalogItem.inStock = false;
+          catalogItem.updatedAt = new Date().toISOString();
+        }
+      }
+
       const order = { id: crypto.randomUUID(), ...orderInput, status: 'pending', createdAt: new Date().toISOString() };
       data.orders.push(order); writeData(data, req, url); return json(res, 201, { order });
     }

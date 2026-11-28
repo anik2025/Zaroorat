@@ -123,6 +123,9 @@ function readData(db) {
       price: r.price,
       category: r.category,
       inStock: unbool(r.in_stock),
+      stockQuantity: r.stock_quantity !== undefined && r.stock_quantity !== null ? Number(r.stock_quantity) : 0,
+      trackStock: unbool(r.track_stock),
+      lowStockThreshold: r.low_stock_threshold !== undefined && r.low_stock_threshold !== null ? Number(r.low_stock_threshold) : 5,
       imageUrl: r.image_url,
       deleted: unbool(r.deleted),
       createdAt: r.created_at,
@@ -159,6 +162,8 @@ function rowToBusiness(r) {
     subscriptionExpiresAt: r.subscription_expires_at || undefined,
     latitude: r.latitude !== null && r.latitude !== undefined ? Number(r.latitude) : undefined,
     longitude: r.longitude !== null && r.longitude !== undefined ? Number(r.longitude) : undefined,
+    availabilityStatus: r.availability_status || 'open',
+    operatingHours: p(r.operating_hours) || {},
     rating: r.rating === null || r.rating === undefined ? undefined : (r.rating === 'New' ? 'New' : Number(r.rating)),
     reviewCount: r.review_count || 0,
     createdAt: r.created_at,
@@ -174,8 +179,9 @@ function writeData(data, db) {
     (id, name, category, owner_name, phone, whatsapp, state, city, area, address,
      description, products, pricing, images, status, is_verified, is_featured,
      owner_claimed, owner_phone, owner_verified_at, subscription_tier,
-     subscription_expires_at, rating, review_count, latitude, longitude, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+     subscription_expires_at, rating, review_count, latitude, longitude,
+     availability_status, operating_hours, created_at, updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   const upsertEnquiry = db.prepare(`INSERT OR REPLACE INTO enquiries
     (id, business_id, customer_name, customer_phone, message, status, created_at, updated_at)
@@ -196,9 +202,10 @@ function writeData(data, db) {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   const upsertCatalogItem = db.prepare(`INSERT OR REPLACE INTO catalog_items
-    (id, business_id, name, description, price, category, in_stock, image_url,
+    (id, business_id, name, description, price, category, in_stock,
+     stock_quantity, track_stock, low_stock_threshold, image_url,
      deleted, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
 
   db.exec('BEGIN');
   try {
@@ -215,6 +222,8 @@ function writeData(data, db) {
         b.reviewCount || 0,
         b.latitude !== undefined && b.latitude !== null ? Number(b.latitude) : null,
         b.longitude !== undefined && b.longitude !== null ? Number(b.longitude) : null,
+        b.availabilityStatus || 'open',
+        j(b.operatingHours || {}),
         b.createdAt, b.updatedAt || null
       );
     }
@@ -241,7 +250,9 @@ function writeData(data, db) {
       for (const item of (items || [])) {
         upsertCatalogItem.run(item.id, bizId, item.name, item.description || '',
           item.price || 0, item.category || '', bool(item.inStock !== false),
-          item.imageUrl || '', bool(item.deleted), item.createdAt, item.updatedAt || null);
+          item.stockQuantity || 0, bool(item.trackStock),
+          item.lowStockThreshold || 5, item.imageUrl || '', bool(item.deleted),
+          item.createdAt, item.updatedAt || null);
       }
     }
     db.exec('COMMIT');
